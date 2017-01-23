@@ -15,13 +15,13 @@ class Robot: public frc::IterativeRobot {
 
 	frc::DoubleSolenoid* solenoid;
 	frc::Joystick* joystick;
-	frc::RobotDrive *robotDrive;
+	frc::RobotDrive* robotDrive;
+
+	frc::AnalogInput* ultrasonic;
 
 	static bool actuate;
+	static int movement;
 public:
-	Robot() {
-		Robot::actuate = false;
-	}
 
 	void RobotInit() {
 		robotDrive = new RobotDrive(0, 1, 2, 3);
@@ -31,8 +31,11 @@ public:
 
 		solenoid = new frc::DoubleSolenoid(0, 1);
 
+		//Start the visionThread function in a different thread.
 		std::thread visionThread(VisionThread);
 		visionThread.detach();
+
+		ultrasonic = new frc::AnalogInput(1);
 	}
 
 	/*
@@ -51,20 +54,32 @@ public:
 	}
 
 	void AutonomousPeriodic() {
-		robotDrive->StopMotor();
+		//MAKE SURE TO UPDATE ALL MOTORS IN EVERY LOOP!
 
 		if (actuate) {
 			solenoid->Set(frc::DoubleSolenoid::Value::kForward);
 		} else {
 			solenoid->Set(frc::DoubleSolenoid::Value::kReverse);
 		}
+
+		//TEST CODE
+		if (movement > 0) {
+			//go right
+			robotDrive->MecanumDrive_Cartesian(0.5, 0.0, 0.0);
+		} else if (movement < 0) {
+			robotDrive->MecanumDrive_Cartesian(-0.5, 0.0, 0.0);
+		} else {
+			robotDrive->StopMotor();
+		}
 	}
 
 	void TeleopInit() {
-
+		solenoid->Set(frc::DoubleSolenoid::Value::kOff);
 	}
 
 	void TeleopPeriodic() {
+		printf("Distance: %f\n", ultrasonic->GetVoltage()* .000977); //scaling factor
+
 		robotDrive->MecanumDrive_Cartesian(joystick->GetX(), joystick->GetY(), joystick->GetTwist());
 
 		if (joystick->GetTrigger()) {
@@ -84,11 +99,11 @@ public:
 	{
 		//Set up the camera
 		int g_exp = 50;
-		frc::SmartDashboard::PutNumber("Exp", g_exp);
+		//frc::SmartDashboard::PutNumber("Exp", g_exp);
 		cs::UsbCamera camera = cs::UsbCamera("usb0",0);
 		camera.SetBrightness(5);
 		camera.SetExposureManual(g_exp);
-		frc::SmartDashboard::PutNumber("Brightness", camera.GetBrightness());
+		//frc::SmartDashboard::PutNumber("Brightness", camera.GetBrightness());
 
 		//Start capture, create outputs
 		CameraServer::GetInstance()->StartAutomaticCapture(camera);
@@ -109,7 +124,7 @@ public:
 			cv::GaussianBlur(hsv, hsv, cv::Size(9, 9), 2, 2);
 
 			//find green
-			inRange(hsv, cv::Scalar(50,100,70), cv::Scalar(70,255,250), threshOutput);
+			cv::inRange(hsv, cv::Scalar(50,100,70), cv::Scalar(70,255,250), threshOutput);
 
 			//group nearby pixels into contours
 			cv::findContours(threshOutput, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
@@ -147,6 +162,9 @@ public:
 
 			//Find the average
 			cv::Mat mean;
+			int width = source.cols;
+			int pixelCenter = width / 2;
+
 			if (centerLarge.size() > 0) {
 				actuate = true;
 
@@ -154,6 +172,14 @@ public:
 
 				cv::Point2f meanPoint(mean.at<float>(0,0), mean.at<float>(0,1));
 				cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
+
+				if (meanPoint.x > (float)pixelCenter) {
+					//go right
+					movement = 1;
+				} else {
+					//go left
+					movement = -1;
+				}
 			} else {
 				actuate = false;
 			}
@@ -165,6 +191,7 @@ public:
 	}
 };
 
-bool Robot::actuate;
+bool Robot::actuate = false;
+int Robot::movement = 0;
 
 START_ROBOT_CLASS(Robot)
