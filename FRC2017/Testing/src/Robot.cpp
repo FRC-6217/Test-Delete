@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <cmath>
 
 #include <IterativeRobot.h>
 #include <LiveWindow/LiveWindow.h>
@@ -24,10 +25,12 @@ class Robot: public frc::IterativeRobot {
 public:
 
 	void RobotInit() {
-		robotDrive = new RobotDrive(0, 1, 2, 3);
+		robotDrive = new frc::RobotDrive(0, 1, 2, 3);
+		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kFrontRightMotor, true);
+		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kRearRightMotor, true);
 
 		joystick = new frc::Joystick(0);
-		joystick->SetAxisChannel(Joystick::kTwistAxis, 3);
+		joystick->SetAxisChannel(Joystick::kTwistAxis, 2);
 
 		solenoid = new frc::DoubleSolenoid(0, 1);
 
@@ -63,14 +66,14 @@ public:
 		}
 
 		//TEST CODE
-		if (movement > 0) {
+		/*if (movement > 0) {
 			//go right
 			robotDrive->MecanumDrive_Cartesian(0.5, 0.0, 0.0);
 		} else if (movement < 0) {
 			robotDrive->MecanumDrive_Cartesian(-0.5, 0.0, 0.0);
 		} else {
 			robotDrive->StopMotor();
-		}
+		}*/
 	}
 
 	void TeleopInit() {
@@ -80,7 +83,8 @@ public:
 	void TeleopPeriodic() {
 		printf("Distance: %f\n", ultrasonic->GetVoltage()* .000977); //scaling factor
 
-		robotDrive->MecanumDrive_Cartesian(joystick->GetX(), joystick->GetY(), joystick->GetTwist());
+		float twist = fabs(joystick->GetTwist()) > 0.05 ? joystick->GetTwist() / 2 : 0.0;
+		robotDrive->MecanumDrive_Cartesian(joystick->GetX(), joystick->GetY(), twist);
 
 		if (joystick->GetTrigger()) {
 			solenoid->Set(frc::DoubleSolenoid::Value::kForward);
@@ -173,12 +177,14 @@ public:
 				cv::Point2f meanPoint(mean.at<float>(0,0), mean.at<float>(0,1));
 				cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
 
-				if (meanPoint.x > (float)pixelCenter) {
+				if (meanPoint.x > (float)pixelCenter + 10.0) {
 					//go right
 					movement = 1;
-				} else {
+				} else if (meanPoint.x < (float)pixelCenter - 10.0) {
 					//go left
 					movement = -1;
+				} else {
+					movement = 0;
 				}
 			} else {
 				actuate = false;
