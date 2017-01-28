@@ -37,10 +37,12 @@ class Robot: public frc::IterativeRobot {
 
 	float servoPos;
 	int autoState;
+	bool debounce;
 
 	//These ones are static because the VisionThread is static.
 	static bool actuate;
 	static int movement;
+	static bool process;
 public:
 
 	//Startup function
@@ -70,6 +72,8 @@ public:
 
 		limitSwitch = new frc::DigitalInput(5);
 
+		debounce = true;
+
 	}
 
 	/*
@@ -86,6 +90,7 @@ public:
 	void AutonomousInit() override {
 		gyro->Reset();
 		autoState = 0;
+		process = true;
 	}
 
 	void AutonomousPeriodic() {
@@ -145,6 +150,17 @@ public:
 		robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
 		printf("Gyro: %f\n", gyro->GetAngle());
 
+		if (joystick->GetRawButton(7)) {
+			gyro->Reset();
+		}
+
+		if (joystick->GetRawButton(11) && debounce) {
+			process = !process;
+			debounce = false;
+		} else {
+			debounce = true;
+		}
+
 	}
 
 	void TestPeriodic() {
@@ -166,6 +182,7 @@ public:
 		camera.SetResolution(320, 240);
 		cs::CvSink cvSink = CameraServer::GetInstance()->GetVideo();
 		cs::CvSource outputStreamStd =  CameraServer::GetInstance()->PutVideo("Processed", 320, 240);
+		cs::CvSource rawOutputSteam = CameraServer::GetInstance()->PutVideo("Raw", 320, 240);
 		cv::Mat source;
 		cv::Mat hsv;
 
@@ -176,72 +193,78 @@ public:
 		//main vision loop
 		while(true) {
 			cvSink.GrabFrame(source);
-			cvtColor(source, hsv, cv::COLOR_BGR2HSV);
-			cv::GaussianBlur(hsv, hsv, cv::Size(9, 9), 2, 2);
+			rawOutputSteam.PutFrame(source);
 
-			//find green
-			cv::inRange(hsv, cv::Scalar(0,0,250), cv::Scalar(180,25,255), threshOutput);
+			if (process) {
 
-			//group nearby pixels into contours
-			cv::findContours(threshOutput, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
+				//cv::GaussianBlur(hsv, hsv, cv::Size(9, 9), 2, 2);
 
-			std::vector<std::vector<cv::Point>> contours_poly (contours.size());
-			std::vector<cv::Point2f> center(contours.size());
-			std::vector<float> radius(contours.size());
+				//find green
+				cv::inRange(hsv, cv::Scalar(0,0,250), cv::Scalar(180,25,255), threshOutput);
 
-			std::vector<cv::Point2f> centerLarge;
-			std::vector<float> radiusLarge;
+				//group nearby pixels into contours
+				cv::findContours(threshOutput, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 
-			//Create a circle around contours
-			for( unsigned int i = 0; i < contours.size(); i++ ) {
-				cv::approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 3, true);
-				minEnclosingCircle((cv::Mat)contours_poly[i], center[i], radius[i]);
+				std::vector<std::vector<cv::Point>> contours_poly (contours.size());
+				std::vector<cv::Point2f> center(contours.size());
+				std::vector<float> radius(contours.size());
 
-				if (radius[i] > 10.0) {
-					cv::Scalar color = cv::Scalar(50, 100, 200);
-					//cv::drawContours(source, contours, i, color, 2, 8, hierarchy, 0, cv::Point());
-					cv::drawContours(source, contours_poly, i, color, 1, 8, hierarchy, 0, cv::Point());
-					//cv::rectangle(source, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
-					cv::circle(source, center[i], (int)radius[i], color, 2, 8, 0);
+				std::vector<cv::Point2f> centerLarge;
+				std::vector<float> radiusLarge;
 
-					centerLarge.push_back(center[i]);
-					radiusLarge.push_back(radius[i]);
+				//Create a circle around contours
+				for( unsigned int i = 0; i < contours.size(); i++ ) {
+					cv::approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 3, true);
+					minEnclosingCircle((cv::Mat)contours_poly[i], center[i], radius[i]);
+
+					if (radius[i] > 10.0) {
+						cv::Scalar color = cv::Scalar(50, 100, 200);
+						//cv::drawContours(source, contours, i, color, 2, 8, hierarchy, 0, cv::Point());
+						cv::drawContours(source, contours_poly, i, color, 1, 8, hierarchy, 0, cv::Point());
+						//cv::rectangle(source, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
+						cv::circle(source, center[i], (int)radius[i], color, 2, 8, 0);
+
+						centerLarge.push_back(center[i]);
+						radiusLarge.push_back(radius[i]);
+					}
 				}
+
+				//cv::Mat output = cv::Mat::zeros(threshOutput.size(), CV_8UC3);
+				//Draw onto camera input
+
+				//Possible: find center, and take midpoint to locate center of both
+				//BEGIN TEST CODE
+
+				//Find the average
+				cv::Mat mean;
+				int width = source.cols;
+				int pixelCenter = width / 2;
+
+				if (centerLarge.size() > 0) {
+					actuate = true;
+
+					cv::reduce(centerLarge, mean, 1, cv::ReduceTypes::REDUCE_AVG);
+
+					cv::Point2f meanPoint(mean.at<float>(0,0), mean.at<float>(0,1));
+					cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
+
+					movement = meanPoint.x - (float)pixelCenter;
+
+				} else {
+					actuate = false;
+				}
+				//END TEST CODE
+
+				//Send to driver station
+				outputStreamStd.PutFrame(source);
 			}
-
-			//cv::Mat output = cv::Mat::zeros(threshOutput.size(), CV_8UC3);
-			//Draw onto camera input
-
-			//Possible: find center, and take midpoint to locate center of both
-			//BEGIN TEST CODE
-
-			//Find the average
-			cv::Mat mean;
-			int width = source.cols;
-			int pixelCenter = width / 2;
-
-			if (centerLarge.size() > 0) {
-				actuate = true;
-
-				cv::reduce(centerLarge, mean, 1, cv::ReduceTypes::REDUCE_AVG);
-
-				cv::Point2f meanPoint(mean.at<float>(0,0), mean.at<float>(0,1));
-				cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
-
-				movement = meanPoint.x - (float)pixelCenter;
-
-			} else {
-				actuate = false;
-			}
-			//END TEST CODE
-
-			//Send to driver station
-			outputStreamStd.PutFrame(source);
 		}
 	}
 };
 
 bool Robot::actuate = false;
 int Robot::movement = 0;
+bool Robot::process = true;
 
 START_ROBOT_CLASS(Robot)
