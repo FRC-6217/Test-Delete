@@ -17,8 +17,16 @@ class Robot: public frc::IterativeRobot {
 	frc::DoubleSolenoid* solenoid;
 	frc::Joystick* joystick;
 	frc::RobotDrive* robotDrive;
-
+	frc::Joystick* xboxjoystick;
 	frc::AnalogInput* ultrasonic;
+	frc::AnalogGyro* gyro;
+	frc::Encoder* enc;
+
+	frc::Servo* servo;
+
+	frc::DigitalInput* limitSwitch;
+
+	float servoPos;
 
 	static bool actuate;
 	static int movement;
@@ -29,8 +37,11 @@ public:
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kFrontRightMotor, true);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kRearRightMotor, true);
 
+		robotDrive->SetMaxOutput(0.5);
+
 		joystick = new frc::Joystick(0);
 		joystick->SetAxisChannel(Joystick::kTwistAxis, 2);
+		xboxjoystick = new frc::Joystick(1);
 
 		solenoid = new frc::DoubleSolenoid(0, 1);
 
@@ -38,7 +49,15 @@ public:
 		std::thread visionThread(VisionThread);
 		visionThread.detach();
 
-		ultrasonic = new frc::AnalogInput(1);
+		ultrasonic = new frc::AnalogInput(2);
+		gyro = new frc::AnalogGyro(0);
+		enc = new frc::Encoder(2, 3, false, frc::Encoder::EncodingType::k4X);
+
+		servo = new frc::Servo(4);
+		servoPos = 0.0;
+
+		limitSwitch = new frc::DigitalInput(5);
+
 	}
 
 	/*
@@ -53,27 +72,30 @@ public:
 	 * SendableChooser make sure to add them to the chooser code above as well.
 	 */
 	void AutonomousInit() override {
-
+		gyro->Reset();
 	}
 
 	void AutonomousPeriodic() {
-		//MAKE SURE TO UPDATE ALL MOTORS IN EVERY LOOP!
+		printf("movement: %i\n", movement);
 
-		if (actuate) {
-			solenoid->Set(frc::DoubleSolenoid::Value::kForward);
-		} else {
-			solenoid->Set(frc::DoubleSolenoid::Value::kReverse);
-		}
-
-		//TEST CODE
-		/*if (movement > 0) {
-			//go right
-			robotDrive->MecanumDrive_Cartesian(0.5, 0.0, 0.0);
-		} else if (movement < 0) {
-			robotDrive->MecanumDrive_Cartesian(-0.5, 0.0, 0.0);
+		/*if (gyro->GetAngle() < 45.0) {
+			robotDrive->MecanumDrive_Cartesian(0,0,0.2);
 		} else {
 			robotDrive->StopMotor();
 		}*/
+		//MAKE SURE TO UPDATE ALL MOTORS IN EVERY LOOP!
+
+		/*if (actuate) {
+			solenoid->Set(frc::DoubleSolenoid::Value::kForward);
+		} else {
+			solenoid->Set(frc::DoubleSolenoid::Value::kReverse);
+		}*/
+
+		//TEST CODE
+		float kP_gyro = -0.1;
+		float kP_movement = 0.1;
+		//robotDrive->MecanumDrive_Cartesian(0.4, 0.0, kP * gyro->GetAngle());
+		robotDrive->MecanumDrive_Cartesian(kP_movement * movement, 0.0, kP_gyro * gyro->GetAngle());
 	}
 
 	void TeleopInit() {
@@ -81,18 +103,20 @@ public:
 	}
 
 	void TeleopPeriodic() {
-		printf("Distance: %f\n", ultrasonic->GetVoltage()* .000977); //scaling factor
+		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-4); //scale speed, max .5
 
-		float twist = fabs(joystick->GetTwist()) > 0.05 ? joystick->GetTwist() / 2 : 0.0;
-		robotDrive->MecanumDrive_Cartesian(joystick->GetX(), joystick->GetY(), twist);
+		//printf("Distance: %i\n", limitSwitch->Get());
+		printf("Distance: %f\n", ultrasonic->GetVoltage() * 977); //scaling factor
+		printf("Encoder: %f\n", enc->GetDistance());
 
-		if (joystick->GetTrigger()) {
-			solenoid->Set(frc::DoubleSolenoid::Value::kForward);
-		} else if (joystick->GetTop()) {
-			solenoid->Set(frc::DoubleSolenoid::Value::kReverse);
-		} else {
-			solenoid->Set(frc::DoubleSolenoid::Value::kOff);
-		}
+		//Add a dead zone
+		float x = fabs(joystick->GetX()) > 0.15 ? joystick->GetX() : 0.0;
+		float y = fabs(joystick->GetY()) > 0.1 ? joystick->GetY() : 0.0;
+		float twist = fabs(joystick->GetTwist()) > 0.1 ? joystick->GetTwist() / 2 : 0.0;
+
+		robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
+		printf("Gyro: %f\n", gyro->GetAngle());
+
 	}
 
 	void TestPeriodic() {
@@ -128,7 +152,7 @@ public:
 			cv::GaussianBlur(hsv, hsv, cv::Size(9, 9), 2, 2);
 
 			//find green
-			cv::inRange(hsv, cv::Scalar(50,100,70), cv::Scalar(70,255,250), threshOutput);
+			cv::inRange(hsv, cv::Scalar(0,0,250), cv::Scalar(180,25,255), threshOutput);
 
 			//group nearby pixels into contours
 			cv::findContours(threshOutput, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
@@ -144,11 +168,7 @@ public:
 			for( unsigned int i = 0; i < contours.size(); i++ ) {
 				cv::approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 3, true);
 				minEnclosingCircle((cv::Mat)contours_poly[i], center[i], radius[i]);
-			}
 
-			//cv::Mat output = cv::Mat::zeros(threshOutput.size(), CV_8UC3);
-			//Draw onto camera input
-			for (unsigned int i = 0; i < contours.size(); i++) {
 				if (radius[i] > 10.0) {
 					cv::Scalar color = cv::Scalar(50, 100, 200);
 					//cv::drawContours(source, contours, i, color, 2, 8, hierarchy, 0, cv::Point());
@@ -160,6 +180,9 @@ public:
 					radiusLarge.push_back(radius[i]);
 				}
 			}
+
+			//cv::Mat output = cv::Mat::zeros(threshOutput.size(), CV_8UC3);
+			//Draw onto camera input
 
 			//Possible: find center, and take midpoint to locate center of both
 			//BEGIN TEST CODE
@@ -177,15 +200,8 @@ public:
 				cv::Point2f meanPoint(mean.at<float>(0,0), mean.at<float>(0,1));
 				cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
 
-				if (meanPoint.x > (float)pixelCenter + 10.0) {
-					//go right
-					movement = 1;
-				} else if (meanPoint.x < (float)pixelCenter - 10.0) {
-					//go left
-					movement = -1;
-				} else {
-					movement = 0;
-				}
+				movement = meanPoint.x - (float)pixelCenter;
+
 			} else {
 				actuate = false;
 			}
