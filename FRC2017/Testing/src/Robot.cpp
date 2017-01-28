@@ -1,3 +1,4 @@
+//Include needed libraries
 #include <iostream>
 #include <memory>
 #include <string>
@@ -12,8 +13,16 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 
+const float KP_GYRO = -0.1;
+const float KP_MOVEMENT = 0.1;
+//5v = 5000mV, analog to digital converter scales to 0-1024.
+//then, divide by 9.8, as that is the spec'd mv/in.
+const float US_SCALE = 5000 / 1024 / 9.8
+
+//Start the class definition
 class Robot: public frc::IterativeRobot {
 
+	//Declare the used variables
 	frc::DoubleSolenoid* solenoid;
 	frc::Joystick* joystick;
 	frc::RobotDrive* robotDrive;
@@ -27,11 +36,14 @@ class Robot: public frc::IterativeRobot {
 	frc::DigitalInput* limitSwitch;
 
 	float servoPos;
+	int autoState;
 
+	//These ones are static because the VisionThread is static.
 	static bool actuate;
 	static int movement;
 public:
 
+	//Startup function
 	void RobotInit() {
 		robotDrive = new frc::RobotDrive(0, 1, 2, 3);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kFrontRightMotor, true);
@@ -73,29 +85,45 @@ public:
 	 */
 	void AutonomousInit() override {
 		gyro->Reset();
+		autoState = 0;
 	}
 
 	void AutonomousPeriodic() {
 		printf("movement: %i\n", movement);
 
-		/*if (gyro->GetAngle() < 45.0) {
-			robotDrive->MecanumDrive_Cartesian(0,0,0.2);
-		} else {
+		//We want to have multiple stages of the auto program, so autoState is used.
+		//At the end of each stage, it is set to the next value to move on to the next step.
+		if (autoState == 0) {
+			//Move forward until a distance is reached, away from wall
+			autoState = 1;
+		} else if (autoState == 1) {
+			//Turn 45-ish degrees
 			robotDrive->StopMotor();
-		}*/
-		//MAKE SURE TO UPDATE ALL MOTORS IN EVERY LOOP!
+			autoState = 2;
+		} else if (autoState == 2) {
+			//Line up with tape, while moving forward until close to gear
+			if (ultrasonic->GetValue() * US_SCALE > 8.0) {
+				robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, 0.2, KP_GYRO * gyro->GetAngle());
+			} else {
+				robotDrive->StopMotor();
+				autoState = 3;
+			}
+		} else if (autoState == 3) {
+			//Move forward to put gear on peg
+			robotDrive->StopMotor();
+			autoState = 4;
+		} else if (autoState == 4) {
+			//Wait for gear to be lifted out, and back up a set distance
+			robotDrive->StopMotor();
+			autoState = 5;
+		} else if (autoState == 5) {
+			//cross auto line
+			robotDrive->StopMotor();
+		}
 
-		/*if (actuate) {
-			solenoid->Set(frc::DoubleSolenoid::Value::kForward);
-		} else {
-			solenoid->Set(frc::DoubleSolenoid::Value::kReverse);
-		}*/
 
 		//TEST CODE
-		float kP_gyro = -0.1;
-		float kP_movement = 0.1;
-		//robotDrive->MecanumDrive_Cartesian(0.4, 0.0, kP * gyro->GetAngle());
-		robotDrive->MecanumDrive_Cartesian(kP_movement * movement, 0.0, kP_gyro * gyro->GetAngle());
+
 	}
 
 	void TeleopInit() {
@@ -106,7 +134,7 @@ public:
 		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-4); //scale speed, max .5
 
 		//printf("Distance: %i\n", limitSwitch->Get());
-		printf("Distance: %f\n", ultrasonic->GetVoltage() * 977); //scaling factor
+		printf("Distance: %f\n", ultrasonic->GetValue() * US_SCALE); //scaling factor
 		printf("Encoder: %f\n", enc->GetDistance());
 
 		//Add a dead zone
@@ -120,7 +148,7 @@ public:
 	}
 
 	void TestPeriodic() {
-
+		printf("Distance: %f\n", ultrasonic->GetValue() * US_SCALE);
 	}
 
 	static void VisionThread()
