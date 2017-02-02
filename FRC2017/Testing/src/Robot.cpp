@@ -178,16 +178,27 @@ public:
 		}
 
 		if(joystick->GetRawButton(6)) {
-			if (count < 10) {
-				winch->Set(1.0);
-				winch2->Set(1.0);
-			} else if (count < 35) {
+			if (count < 20) {
+				winch->Set(0.5);
+				winch2->Set(0.5);
+			} else if (count < 50) {
 				winch->Set(0.0);
 				winch2->Set(0.0);
 			} else {
 				count = 0;
 			}
 			count++;
+		} else if (joystick->GetRawButton(5)) {
+			if (count < 20) {
+							winch->Set(1);
+							winch2->Set(1);
+						} else if (count < 50) {
+							winch->Set(0.0);
+							winch2->Set(0.0);
+						} else {
+							count = 0;
+						}
+						count++;
 		} else {
 			winch->Set(0.0);
 			winch2->Set(0.0);
@@ -244,9 +255,9 @@ public:
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
 				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
 
-				//find green
-				cv::inRange(hsv, cv::Scalar(0,60,200), cv::Scalar(10,180,255), out1);
-				cv::inRange(hsv, cv::Scalar(170,60,200), cv::Scalar(180,180,200), out2);
+				//find red
+				cv::inRange(hsv, cv::Scalar(0,100,100), cv::Scalar(10,255,255), out1);
+				cv::inRange(hsv, cv::Scalar(160,100,100), cv::Scalar(179,255,255), out2);
 				cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
 				//group nearby pixels into contours
