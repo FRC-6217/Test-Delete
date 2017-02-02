@@ -178,7 +178,7 @@ public:
 		}
 
 		if(joystick->GetRawButton(6)) {
-			if (count < 20) {
+			if (count < 40) {
 				winch->Set(0.5);
 				winch2->Set(0.5);
 			} else if (count < 50) {
@@ -189,9 +189,9 @@ public:
 			}
 			count++;
 		} else if (joystick->GetRawButton(5)) {
-			if (count < 20) {
-							winch->Set(1);
-							winch2->Set(1);
+			if (count < 40) {
+							winch->Set(0.95);
+							winch2->Set(.95);
 						} else if (count < 50) {
 							winch->Set(0.0);
 							winch2->Set(0.0);
@@ -199,6 +199,9 @@ public:
 							count = 0;
 						}
 						count++;
+		} else if (joystick->GetRawButton(4)) {
+			winch->Set(0.1);
+			winch2->Set(0.1);
 		} else {
 			winch->Set(0.0);
 			winch2->Set(0.0);
@@ -257,7 +260,7 @@ public:
 
 				//find red
 				cv::inRange(hsv, cv::Scalar(0,100,100), cv::Scalar(10,255,255), out1);
-				cv::inRange(hsv, cv::Scalar(160,100,100), cv::Scalar(179,255,255), out2);
+				cv::inRange(hsv, cv::Scalar(160,100,100), cv::Scalar(179,150,255), out2);
 				cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
 				//group nearby pixels into contours
