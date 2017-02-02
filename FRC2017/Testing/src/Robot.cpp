@@ -14,10 +14,8 @@
 #include <opencv2/core/core.hpp>
 
 const float KP_GYRO = -0.1;
-const float KP_MOVEMENT = 0.1;
-//5v = 5000mV, analog to digital converter scales to 0-1024.
-//then, divide by 9.8, as that is the spec'd mv/in.
-const float US_SCALE = 5000 / 1024 / 9.8
+const float KP_MOVEMENT = 0.01;
+const float US_SCALE = 1/4.5;
 
 //Start the class definition
 class Robot: public frc::IterativeRobot {
@@ -32,12 +30,15 @@ class Robot: public frc::IterativeRobot {
 	frc::Encoder* enc;
 
 	frc::Servo* servo;
+	frc::VictorSP* winch;
+	frc::VictorSP* winch2;
 
 	frc::DigitalInput* limitSwitch;
 
 	float servoPos;
 	int autoState;
 	bool debounce;
+	int count;
 
 	//These ones are static because the VisionThread is static.
 	static bool actuate;
@@ -69,6 +70,8 @@ public:
 
 		servo = new frc::Servo(4);
 		servoPos = 0.0;
+		winch = new frc::VictorSP(5);
+		winch2 = new frc::VictorSP(6);
 
 		limitSwitch = new frc::DigitalInput(5);
 
@@ -96,6 +99,17 @@ public:
 	void AutonomousPeriodic() {
 		printf("movement: %i\n", movement);
 
+		float distance = ultrasonic->GetValue();
+		if (distance < 214.0) {
+			distance = 0;
+		} else {
+			distance -= 214;
+		}
+
+		distance *= US_SCALE;
+		distance += 10.5;
+
+
 		//We want to have multiple stages of the auto program, so autoState is used.
 		//At the end of each stage, it is set to the next value to move on to the next step.
 		if (autoState == 0) {
@@ -107,14 +121,17 @@ public:
 			autoState = 2;
 		} else if (autoState == 2) {
 			//Line up with tape, while moving forward until close to gear
-			if (ultrasonic->GetValue() * US_SCALE > 8.0) {
-				robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, 0.2, KP_GYRO * gyro->GetAngle());
+
+			if (distance > 20.0) {
+				robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, -0.2, KP_GYRO * gyro->GetAngle());
 			} else {
 				robotDrive->StopMotor();
-				autoState = 3;
+				autoState = 4;
 			}
 		} else if (autoState == 3) {
-			//Move forward to put gear on peg
+			if (distance > 12.0) {
+				robotDrive->MecanumDrive_Cartesian(0.0, 0.2, KP_GYRO * gyro->GetAngle());
+			}
 			robotDrive->StopMotor();
 			autoState = 4;
 		} else if (autoState == 4) {
@@ -133,14 +150,13 @@ public:
 
 	void TeleopInit() {
 		solenoid->Set(frc::DoubleSolenoid::Value::kOff);
+		count = 0;
 	}
 
 	void TeleopPeriodic() {
-		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-4); //scale speed, max .5
+		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-2); //scale speed
 
 		//printf("Distance: %i\n", limitSwitch->Get());
-		printf("Distance: %f\n", ultrasonic->GetValue() * US_SCALE); //scaling factor
-		printf("Encoder: %f\n", enc->GetDistance());
 
 		//Add a dead zone
 		float x = fabs(joystick->GetX()) > 0.15 ? joystick->GetX() : 0.0;
@@ -157,14 +173,42 @@ public:
 		if (joystick->GetRawButton(11) && debounce) {
 			process = !process;
 			debounce = false;
-		} else {
+		} else if (joystick->GetRawButton(11) == false) {
 			debounce = true;
 		}
+
+		if(joystick->GetRawButton(6)) {
+			if (count < 10) {
+				winch->Set(1.0);
+				winch2->Set(1.0);
+			} else if (count < 35) {
+				winch->Set(0.0);
+				winch2->Set(0.0);
+			} else {
+				count = 0;
+			}
+			count++;
+		} else {
+			winch->Set(0.0);
+			winch2->Set(0.0);
+		}
+
 
 	}
 
 	void TestPeriodic() {
-		printf("Distance: %f\n", ultrasonic->GetValue() * US_SCALE);
+		float distance = ultrasonic->GetValue();
+		if (distance < 214.0) {
+			distance = 0;
+		} else {
+			distance -= 214;
+		}
+
+		distance *= US_SCALE;
+		distance += 10.5;
+		//printf("Distance: %f\n", distance);
+		printf("Encoder: %f\n", enc->GetDistance());
+
 	}
 
 	static void VisionThread()
@@ -181,27 +225,29 @@ public:
 		CameraServer::GetInstance()->StartAutomaticCapture(camera);
 		camera.SetResolution(320, 240);
 		cs::CvSink cvSink = CameraServer::GetInstance()->GetVideo();
-		cs::CvSource outputStreamStd =  CameraServer::GetInstance()->PutVideo("Processed", 320, 240);
-		cs::CvSource rawOutputSteam = CameraServer::GetInstance()->PutVideo("Raw", 320, 240);
+		cs::CvSource outputStreamStd =  CameraServer::GetInstance()->PutVideo("Output", 320, 240);
 		cv::Mat source;
 		cv::Mat hsv;
 
 		cv::Mat threshOutput;
+		cv::Mat out1;
+		cv::Mat out2;
 		std::vector<std::vector<cv::Point>> contours;
 		std::vector<cv::Vec4i> hierarchy;
 
 		//main vision loop
 		while(true) {
 			cvSink.GrabFrame(source);
-			rawOutputSteam.PutFrame(source);
 
 			if (process) {
 
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
-				//cv::GaussianBlur(hsv, hsv, cv::Size(9, 9), 2, 2);
+				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
 
 				//find green
-				cv::inRange(hsv, cv::Scalar(0,0,250), cv::Scalar(180,25,255), threshOutput);
+				cv::inRange(hsv, cv::Scalar(0,60,200), cv::Scalar(10,180,255), out1);
+				cv::inRange(hsv, cv::Scalar(170,60,200), cv::Scalar(180,180,200), out2);
+				cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
 				//group nearby pixels into contours
 				cv::findContours(threshOutput, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
@@ -254,11 +300,11 @@ public:
 				} else {
 					actuate = false;
 				}
-				//END TEST CODE
-
-				//Send to driver station
-				outputStreamStd.PutFrame(source);
 			}
+			//END TEST CODE
+
+			//Send to driver station
+			outputStreamStd.PutFrame(source);
 		}
 	}
 };
