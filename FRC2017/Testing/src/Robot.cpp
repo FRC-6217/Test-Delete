@@ -67,6 +67,7 @@ public:
 		ultrasonic = new frc::AnalogInput(2);
 		gyro = new frc::AnalogGyro(0);
 		enc = new frc::Encoder(2, 3, false, frc::Encoder::EncodingType::k4X);
+		enc->SetDistancePerPulse(-0.0211600227);
 
 		servo = new frc::Servo(4);
 		servoPos = 0.0;
@@ -92,6 +93,7 @@ public:
 	 */
 	void AutonomousInit() override {
 		gyro->Reset();
+		enc->Reset();
 		autoState = 0;
 		process = true;
 	}
@@ -114,11 +116,19 @@ public:
 		//At the end of each stage, it is set to the next value to move on to the next step.
 		if (autoState == 0) {
 			//Move forward until a distance is reached, away from wall
-			autoState = 1;
+			robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
+			if (enc->GetDistance() > 120.0) {
+				robotDrive->StopMotor();
+				autoState = 1;
+			}
 		} else if (autoState == 1) {
 			//Turn 45-ish degrees
-			robotDrive->StopMotor();
-			autoState = 2;
+			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
+			if (gyro->GetAngle() > 45.0) {
+				robotDrive->StopMotor();
+				autoState = 2;
+				gyro->Reset();
+			}
 		} else if (autoState == 2) {
 			//Line up with tape, while moving forward until close to gear
 
@@ -151,10 +161,12 @@ public:
 	void TeleopInit() {
 		solenoid->Set(frc::DoubleSolenoid::Value::kOff);
 		count = 0;
+		enc->Reset();
 	}
 
 	void TeleopPeriodic() {
 		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-2); //scale speed
+		printf("Encoder: %f\n", enc->GetDistance());
 
 		//printf("Distance: %i\n", limitSwitch->Get());
 
@@ -179,9 +191,9 @@ public:
 
 		if(joystick->GetRawButton(6)) {
 			if (count < 40) {
-				winch->Set(0.5);
-				winch2->Set(0.5);
-			} else if (count < 50) {
+				winch->Set(0.3);
+				winch2->Set(0.3);
+			} else if (count < 40) {
 				winch->Set(0.0);
 				winch2->Set(0.0);
 			} else {
@@ -190,15 +202,15 @@ public:
 			count++;
 		} else if (joystick->GetRawButton(5)) {
 			if (count < 40) {
-							winch->Set(0.95);
-							winch2->Set(.95);
-						} else if (count < 50) {
-							winch->Set(0.0);
-							winch2->Set(0.0);
-						} else {
-							count = 0;
-						}
-						count++;
+				winch->Set(0.55);
+				winch2->Set(.55);
+			} else if (count < 40) {
+					winch->Set(0.0);
+					winch2->Set(0.0);
+			} else {
+					count = 0;
+			}
+			count++;
 		} else if (joystick->GetRawButton(4)) {
 			winch->Set(0.1);
 			winch2->Set(0.1);
@@ -259,8 +271,8 @@ public:
 				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
 
 				//find red
-				cv::inRange(hsv, cv::Scalar(0,100,100), cv::Scalar(10,255,255), out1);
-				cv::inRange(hsv, cv::Scalar(160,100,100), cv::Scalar(179,150,255), out2);
+				cv::inRange(hsv, cv::Scalar(0,130,140), cv::Scalar(10,160,255), out1);
+				cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
 				cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
 				//group nearby pixels into contours
