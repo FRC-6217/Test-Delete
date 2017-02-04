@@ -35,6 +35,8 @@ class Robot: public frc::IterativeRobot {
 
 	frc::DigitalInput* limitSwitch;
 
+	frc::SendableChooser<int> autoChooser;
+
 	float servoPos;
 	int autoState;
 	bool debounce;
@@ -48,6 +50,13 @@ public:
 
 	//Startup function
 	void RobotInit() {
+		autoChooser = frc::SendableChooser<int>();
+		autoChooser.AddDefault("Cross Line", 0);
+		autoChooser.AddObject("Left", 1);
+		autoChooser.AddObject("Center", 2);
+		autoChooser.AddObject("Right", 3);
+		autoChooser.AddObject("Balls", 4);
+
 		robotDrive = new frc::RobotDrive(0, 1, 2, 3);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kFrontRightMotor, true);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kRearRightMotor, true);
@@ -121,6 +130,7 @@ public:
 			} else {
 				robotDrive->StopMotor();
 				autoState = 1;
+				enc->Reset();
 			}
 		} else if (autoState == 1) {
 			//Turn 45-ish degrees
@@ -148,7 +158,7 @@ public:
 				autoState = 4;
 			}
 		} else if (autoState == 4) {
-			//Wait for gear to be lifted out, and back up a set distance
+			//Wait for gear to be lifted out
 			if (!limitSwitch->Get()) {
 				robotDrive->StopMotor();
 			} else {
@@ -156,8 +166,14 @@ public:
 				autoState = 5;
 			}
 		} else if (autoState == 5) {
-			//cross auto line
-			robotDrive->StopMotor();
+			//Back up
+			if (enc->GetDistance() > -24.0) {
+				robotDrive->MecanumDrive_Cartesian(0.0,0.2,KP_GYRO * gyro->GetAngle());
+			} else {
+				robotDrive->StopMotor();
+				autoState = 6;
+				enc->Reset();
+			}
 		}
 
 
