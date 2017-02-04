@@ -35,6 +35,9 @@ class Robot: public frc::IterativeRobot {
 
 	frc::DigitalInput* limitSwitch;
 
+	//frc::I2C* i2c;
+	frc::SerialPort* arduino
+
 	float servoPos;
 	int autoState;
 	bool debounce;
@@ -77,6 +80,9 @@ public:
 		limitSwitch = new frc::DigitalInput(5);
 
 		debounce = true;
+
+		//i2c = new I2C(I2C::Port::kOnboard, 2);
+		arduino = new frc::SerialPort(9600, frc::SerialPort::Port::kUSB1);
 
 	}
 
@@ -234,6 +240,11 @@ public:
 		distance += 10.5;
 		//printf("Distance: %f\n", distance);
 		printf("Encoder: %f\n", enc->GetDistance());
+
+		uint8_t lightPattern[1];
+		lightPattern[0] = 1; // Probably better to define enums for various light modes, but set a light mode here
+		uint8_t arduinoData[1];
+		i2c->Transaction(lightPattern, 1, arduinoData, 1);
 
 	}
 
