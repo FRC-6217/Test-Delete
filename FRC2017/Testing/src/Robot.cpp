@@ -115,16 +115,18 @@ public:
 		//We want to have multiple stages of the auto program, so autoState is used.
 		//At the end of each stage, it is set to the next value to move on to the next step.
 		if (autoState == 0) {
-			//Move forward until a distance is reached, away from wall
-			robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
-			if (enc->GetDistance() > 120.0) {
+			//Move forward until a distance is reached, across line
+			if (enc->GetDistance() < 120.0) {
+				robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
+			} else {
 				robotDrive->StopMotor();
 				autoState = 1;
 			}
 		} else if (autoState == 1) {
 			//Turn 45-ish degrees
-			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
-			if (gyro->GetAngle() > 45.0) {
+			if (gyro->GetAngle() < 45.0) {
+				robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
+			} else {
 				robotDrive->StopMotor();
 				autoState = 2;
 				gyro->Reset();
@@ -141,13 +143,18 @@ public:
 		} else if (autoState == 3) {
 			if (distance > 12.0) {
 				robotDrive->MecanumDrive_Cartesian(0.0, 0.2, KP_GYRO * gyro->GetAngle());
+			} else {
+				robotDrive->StopMotor();
+				autoState = 4;
 			}
-			robotDrive->StopMotor();
-			autoState = 4;
 		} else if (autoState == 4) {
 			//Wait for gear to be lifted out, and back up a set distance
-			robotDrive->StopMotor();
-			autoState = 5;
+			if (!limitSwitch->Get()) {
+				robotDrive->StopMotor();
+			} else {
+				robotDrive->StopMotor();
+				autoState = 5;
+			}
 		} else if (autoState == 5) {
 			//cross auto line
 			robotDrive->StopMotor();
@@ -270,10 +277,10 @@ public:
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
 				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
 
-				//find red
-				cv::inRange(hsv, cv::Scalar(0,130,140), cv::Scalar(10,160,255), out1);
-				cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
-				cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
+				//find green
+				cv::inRange(hsv, cv::Scalar(30,100,150), cv::Scalar(80,255,255), threshOutput);
+				//cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
+				//cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
 				//group nearby pixels into contours
 				cv::findContours(threshOutput, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
