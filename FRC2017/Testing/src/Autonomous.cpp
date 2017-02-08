@@ -53,3 +53,11 @@ void Autonomous::baseGearRight(int autoState) {
 		}
 	}
 }
+
+	void Autonomous::forward(){
+		if (enc->GetDistance() < 120.0) {
+			robotDrive->MecanumDrive_Cartesian(0.0, -0.4, KP_GYRO * gyro->GetAngle());
+		} else {
+			robotDrive->StopMotor();
+			enc->Reset();
+	}
