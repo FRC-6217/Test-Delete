@@ -36,7 +36,7 @@ class Robot: public frc::IterativeRobot {
 	frc::DigitalInput* limitSwitch;
 
 	//frc::I2C* i2c;
-	frc::SerialPort* arduino
+	frc::SerialPort* arduino;
 
 	float servoPos;
 	int autoState;
@@ -82,7 +82,7 @@ public:
 		debounce = true;
 
 		//i2c = new I2C(I2C::Port::kOnboard, 2);
-		arduino = new frc::SerialPort(9600, frc::SerialPort::Port::kUSB1);
+		arduino = new frc::SerialPort(9600, frc::SerialPort::kUSB);
 
 	}
 
@@ -244,7 +244,10 @@ public:
 		uint8_t lightPattern[1];
 		lightPattern[0] = 1; // Probably better to define enums for various light modes, but set a light mode here
 		uint8_t arduinoData[1];
-		i2c->Transaction(lightPattern, 1, arduinoData, 1);
+		//i2c->Transaction(lightPattern, 1, arduinoData, 1);
+			char* read = new char[arduino->GetBytesReceived()];
+			arduino->Read(read, arduino->GetBytesReceived());
+			printf("%s\n", read);
 
 	}
 
@@ -253,9 +256,13 @@ public:
 		//Set up the camera
 		int g_exp = 50;
 		//frc::SmartDashboard::PutNumber("Exp", g_exp);
-		cs::UsbCamera camera = cs::UsbCamera("usb0",0);
+		cs::UsbCamera camera = cs::UsbCamera("usb0", 0);
+		//cs::UsbCamera camera2 = cs::UsbCamera("usb1", 1);
 		camera.SetBrightness(5);
 		camera.SetExposureManual(g_exp);
+		//camera2.SetBrightness(5);
+		//camera2.SetExposureManual(g_exp);
+
 		//frc::SmartDashboard::PutNumber("Brightness", camera.GetBrightness());
 
 		//Start capture, create outputs
@@ -276,7 +283,7 @@ public:
 		while(true) {
 			cvSink.GrabFrame(source);
 
-			if (process) {
+			/*if (process) {
 
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
 				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
@@ -337,7 +344,7 @@ public:
 				} else {
 					actuate = false;
 				}
-			}
+			}*/
 			//END TEST CODE
 
 			//Send to driver station
