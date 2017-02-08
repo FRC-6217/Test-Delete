@@ -13,9 +13,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 
-const float KP_GYRO = -0.1;
-const float KP_MOVEMENT = 0.01;
-const float US_SCALE = 1/4.5;
+#include "Autonomous.h"
 
 //Start the class definition
 class Robot: public frc::IterativeRobot {
@@ -87,6 +85,7 @@ public:
 
 		debounce = true;
 
+		Autonomous::AutoInit(enc, robotDrive, gyro);
 	}
 
 	/*
@@ -120,6 +119,7 @@ public:
 		distance *= US_SCALE;
 		distance += 10.5;
 
+		Autonomous::distance = distance;
 
 		//We want to have multiple stages of the auto program, so autoState is used.
 		//At the end of each stage, it is set to the next value to move on to the next step.
@@ -344,7 +344,7 @@ public:
 					cv::Point2f meanPoint(mean.at<float>(0,0), mean.at<float>(0,1));
 					cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
 
-					movement = meanPoint.x - (float)pixelCenter;
+					Autonomous::movement = meanPoint.x - (float)pixelCenter;
 
 				} else {
 					actuate = false;
