@@ -102,7 +102,7 @@ public:
 	void AutonomousInit() override {
 		gyro->Reset();
 		enc->Reset();
-		autoState = 0;
+		Autonomous::autoState = 0;
 		process = true;
 	}
 
@@ -120,65 +120,6 @@ public:
 		distance += 10.5;
 
 		Autonomous::distance = distance;
-
-		//We want to have multiple stages of the auto program, so autoState is used.
-		//At the end of each stage, it is set to the next value to move on to the next step.
-		if (autoState == 0) {
-			//Move forward until a distance is reached, across line
-			if (enc->GetDistance() < 120.0) {
-				robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
-			} else {
-				robotDrive->StopMotor();
-				autoState = 1;
-				enc->Reset();
-			}
-		} else if (autoState == 1) {
-			//Turn 45-ish degrees
-			if (gyro->GetAngle() < 45.0) {
-				robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
-			} else {
-				robotDrive->StopMotor();
-				autoState = 2;
-				gyro->Reset();
-			}
-		} else if (autoState == 2) {
-			//Line up with tape, while moving forward until close to gear
-
-			if (distance > 20.0) {
-				robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, -0.2, KP_GYRO * gyro->GetAngle());
-			} else {
-				robotDrive->StopMotor();
-				autoState = 4;
-			}
-		} else if (autoState == 3) {
-			if (distance > 12.0) {
-				robotDrive->MecanumDrive_Cartesian(0.0, 0.2, KP_GYRO * gyro->GetAngle());
-			} else {
-				robotDrive->StopMotor();
-				autoState = 4;
-			}
-		} else if (autoState == 4) {
-			//Wait for gear to be lifted out
-			if (!limitSwitch->Get()) {
-				robotDrive->StopMotor();
-			} else {
-				robotDrive->StopMotor();
-				autoState = 5;
-			}
-		} else if (autoState == 5) {
-			//Back up
-			if (enc->GetDistance() > -24.0) {
-				robotDrive->MecanumDrive_Cartesian(0.0,0.2,KP_GYRO * gyro->GetAngle());
-			} else {
-				robotDrive->StopMotor();
-				autoState = 6;
-				enc->Reset();
-			}
-		}
-
-
-		//TEST CODE
-
 	}
 
 	void TeleopInit() {
