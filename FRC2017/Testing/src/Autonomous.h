@@ -15,7 +15,7 @@ public:
 
 	static void AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope);
 	static void baseGearRight();
-
+	static void baseGearleft();
 private:
 	static frc::Encoder* enc;
 	static frc::RobotDrive* robotDrive;
