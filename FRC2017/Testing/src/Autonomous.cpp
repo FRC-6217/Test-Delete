@@ -53,3 +53,26 @@ void Autonomous::baseGearRight(int autoState) {
 		}
 	}
 }
+void Autonomous::baseGearCenter(int autoState) {
+	if (autoState == 0) {
+		//Move forward until a distance is reached, across line
+		if (enc->GetDistance() < 120.0) {
+			robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
+		} else {
+			robotDrive->StopMotor();
+			autoState = 1;
+			enc->Reset();
+		}
+
+
+	} else if (autoState == 1) {
+		//Line up with tape, while moving forward until close to gear
+
+		if (distance > 20.0) {
+			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, -0.2, KP_GYRO * gyro->GetAngle());
+		} else {
+			robotDrive->StopMotor();
+
+		}
+	}
+}
