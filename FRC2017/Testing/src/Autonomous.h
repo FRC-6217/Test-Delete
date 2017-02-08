@@ -11,11 +11,12 @@ class Autonomous {
 public:
 	static float movement;
 	static float distance;
+	static int autoState;
 
 	static void AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope);
-	static void baseGearRight(int autoState);
 	static void forward();
-
+	static void baseGearRight();
+	static void baseGearleft();
 private:
 	static frc::Encoder* enc;
 	static frc::RobotDrive* robotDrive;
