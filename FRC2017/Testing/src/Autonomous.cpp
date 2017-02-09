@@ -16,11 +16,13 @@ int Autonomous::autoState = 0;
 frc::Encoder* Autonomous::enc;
 frc::RobotDrive* Autonomous::robotDrive;
 frc::AnalogGyro* Autonomous::gyro;
+frc::DigitalInput* Autonomous::limitSwitch;
 
-void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope) {
+void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw) {
 	enc = encoder;
 	robotDrive = drive;
 	gyro = gyroscope;
+	limitSwitch = sw;
 
 }
 
@@ -55,7 +57,7 @@ void Autonomous::baseGearRight() {
 	} else if (autoState == 3) {
 		//Wait for ger to be removed
 		robotDrive->StopMotor();
-		if (/*todo: get gear state*/true) {
+		if (limitSwitch->Get() == false) {
 			autoState = 4;
 		}
 	} else if (autoState == 4) {
@@ -68,7 +70,7 @@ void Autonomous::baseGearRight() {
 		}
 	} else if (autoState == 5) {
 		//turn to cross line
-		if (gyro->GetAngle > -45.0) {
+		if (gyro->GetAngle() > -45.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0,0.0,-0.4);
 		} else {
 			robotDrive->StopMotor();
@@ -126,7 +128,7 @@ void Autonomous::baseGearleft() {
 	} else if (autoState == 3) {
 		//Wait for ger to be removed
 		robotDrive->StopMotor();
-		if (/*todo: get gear state*/true) {
+		if (limitSwitch->Get() == false) {
 			autoState = 4;
 		}
 	} else if (autoState == 4) {
@@ -139,7 +141,7 @@ void Autonomous::baseGearleft() {
 		}
 	} else if (autoState == 5) {
 		//turn to cross line
-		if (gyro->GetAngle < 45.0) {
+		if (gyro->GetAngle() < 45.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
 		} else {
 			robotDrive->StopMotor();

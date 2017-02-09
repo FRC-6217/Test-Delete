@@ -13,7 +13,7 @@ public:
 	static float distance;
 	static int autoState;
 
-	static void AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope);
+	static void AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw);
 	static void baseGearCenter();
 	static void forward();
 	static void baseGearRight();
@@ -22,6 +22,7 @@ private:
 	static frc::Encoder* enc;
 	static frc::RobotDrive* robotDrive;
 	static frc::AnalogGyro* gyro;
+	static frc::DigitalInput* limitSwitch;
 };
 
 #endif /* SRC_AUTONOMOUS_H_ */

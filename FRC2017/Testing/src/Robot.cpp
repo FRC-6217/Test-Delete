@@ -85,7 +85,7 @@ public:
 
 		debounce = true;
 
-		Autonomous::AutoInit(enc, robotDrive, gyro);
+		Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
 	}
 
 	/*
