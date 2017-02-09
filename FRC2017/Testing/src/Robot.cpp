@@ -230,17 +230,7 @@ public:
 	}
 
 	void TestPeriodic() {
-		float distance = ultrasonic->GetValue();
-		if (distance < 214.0) {
-			distance = 0;
-		} else {
-			distance -= 214;
-		}
-
-		distance *= US_SCALE;
-		distance += 10.5;
-		//printf("Distance: %f\n", distance);
-		printf("Encoder: %f\n", enc->GetDistance());
+		printf("Switch: %d\n", limitSwitch->Get());
 
 	}
 
