@@ -198,8 +198,8 @@ public:
 
 		if(joystick->GetRawButton(6)) {
 			if (count < 40) {
-				winch->Set(0.3);
-				winch2->Set(0.3);
+				winch->Set(-0.3);
+				winch2->Set(-0.3);
 			} else if (count < 40) {
 				winch->Set(0.0);
 				winch2->Set(0.0);
@@ -209,8 +209,8 @@ public:
 			count++;
 		} else if (joystick->GetRawButton(5)) {
 			if (count < 40) {
-				winch->Set(0.55);
-				winch2->Set(.55);
+				winch->Set(-0.63);
+				winch2->Set(-0.63);
 			} else if (count < 40) {
 					winch->Set(0.0);
 					winch2->Set(0.0);
@@ -219,8 +219,8 @@ public:
 			}
 			count++;
 		} else if (joystick->GetRawButton(4)) {
-			winch->Set(0.1);
-			winch2->Set(0.1);
+			winch->Set(-0.1);
+			winch2->Set(-0.1);
 		} else {
 			winch->Set(0.0);
 			winch2->Set(0.0);
