@@ -33,7 +33,8 @@ class Robot: public frc::IterativeRobot {
 
 	frc::DigitalInput* limitSwitch;
 
-	frc::SendableChooser<int> autoChooser;
+	frc::SendableChooser<int>* autoChooser;
+	enum autoProgram {CROSS, GEAR_LEFT, GEAR_CENTER, GEAR_RIGHT, BALLS};
 
 	float servoPos;
 	int autoState;
@@ -48,12 +49,20 @@ public:
 
 	//Startup function
 	void RobotInit() {
-		autoChooser = frc::SendableChooser<int>();
-		autoChooser.AddDefault("Cross Line", 0);
-		autoChooser.AddObject("Left", 1);
-		autoChooser.AddObject("Center", 2);
-		autoChooser.AddObject("Right", 3);
-		autoChooser.AddObject("Balls", 4);
+
+		//autoChooser = new frc::SendableChooser<int>();
+		/*autoChooser->AddDefault("Cross Line", CROSS);
+		autoChooser->AddObject("Left", GEAR_LEFT);
+		autoChooser->AddObject("Center", GEAR_CENTER);
+		autoChooser->AddObject("Right", GEAR_RIGHT);
+		autoChooser->AddObject("Balls", BALLS);
+		frc::SmartDashboard::PutData("Auto mode", autoChooser);
+		*/
+		frc::SmartDashboard::PutNumber("Auto", CROSS);
+		frc::SmartDashboard::PutNumber("Auto", GEAR_LEFT);
+		frc::SmartDashboard::PutNumber("Auto", GEAR_CENTER);
+		frc::SmartDashboard::PutNumber("Auto", GEAR_RIGHT);
+		frc::SmartDashboard::PutNumber("Auto", BALLS);
 
 		robotDrive = new frc::RobotDrive(0, 1, 2, 3);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kFrontRightMotor, true);
@@ -121,6 +130,7 @@ public:
 		distance += 10.5;
 
 		Autonomous::distance = distance;
+		//(frc::SmartDashboard::GetString("Auto", ""))
 		Autonomous::baseGearCenter();
 	}
 
