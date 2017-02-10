@@ -38,12 +38,13 @@ void Autonomous::baseGearRight() {
 		}
 	} else if (autoState == 1) {
 		//Turn 45-ish degrees
-		if (gyro->GetAngle() < 45.0) {
-			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
+		if (gyro->GetAngle() > -45.0) {
+			robotDrive->MecanumDrive_Cartesian(0.0,0.0,-0.4);
 		} else {
 			robotDrive->StopMotor();
 			autoState = 2;
 			gyro->Reset();
+			enc->Reset();
 		}
 	} else if (autoState == 2) {
 		//Line up with tape, while moving forward until close to gear
@@ -70,12 +71,13 @@ void Autonomous::baseGearRight() {
 		}
 	} else if (autoState == 5) {
 		//turn to cross line
-		if (gyro->GetAngle() > -45.0) {
-			robotDrive->MecanumDrive_Cartesian(0.0,0.0,-0.4);
+		if (gyro->GetAngle() < 45.0) {
+			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
 		} else {
 			robotDrive->StopMotor();
 			autoState = 6;
 			gyro->Reset();
+			enc->Reset();
 		}
 	} else if (autoState == 6) {
 		if (enc->GetDistance() < 30.0) {
@@ -85,15 +87,17 @@ void Autonomous::baseGearRight() {
 			autoState = 7;
 			enc->Reset();
 		}
+	} else {
+		robotDrive->StopMotor();
 	}
 }
 
 void Autonomous::forward(){
-		if (enc->GetDistance() < 120.0) {
-			robotDrive->MecanumDrive_Cartesian(0.0, -0.4, KP_GYRO * gyro->GetAngle());
-		} else {
-			robotDrive->StopMotor();
-			enc->Reset();
+	if (enc->GetDistance() < 120.0) {
+		robotDrive->MecanumDrive_Cartesian(0.0, -0.4, KP_GYRO * gyro->GetAngle());
+	} else {
+		robotDrive->StopMotor();
+		enc->Reset();
 	}
 }
 
@@ -109,12 +113,13 @@ void Autonomous::baseGearleft() {
 		}
 	} else if (autoState == 1) {
 		//Turn 45-ish degrees
-		if (gyro->GetAngle() > -45.0) {
-			robotDrive->MecanumDrive_Cartesian(0.0,0.0,-0.4);
+		if (gyro->GetAngle() < 45.0) {
+			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
 		} else {
 			robotDrive->StopMotor();
 			autoState = 2;
 			gyro->Reset();
+			enc->Reset();
 		}
 	} else if (autoState == 2) {
 		//Line up with tape, while moving forward until close to gear
@@ -141,12 +146,13 @@ void Autonomous::baseGearleft() {
 		}
 	} else if (autoState == 5) {
 		//turn to cross line
-		if (gyro->GetAngle() < 45.0) {
-			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
+		if (gyro->GetAngle() > -45.0) {
+			robotDrive->MecanumDrive_Cartesian(0.0,0.0,-0.4);
 		} else {
 			robotDrive->StopMotor();
 			autoState = 6;
 			gyro->Reset();
+			enc->Reset();
 		}
 	} else if (autoState == 6) {
 		if (enc->GetDistance() < 30.0) {
@@ -156,12 +162,14 @@ void Autonomous::baseGearleft() {
 			autoState = 7;
 			enc->Reset();
 		}
+	} else {
+		robotDrive->StopMotor();
 	}
 }
 void Autonomous::baseGearCenter() {
 	if (autoState == 0) {
 		//Move forward until a distance is reached, across line
-		if (enc->GetDistance() < 120.0) {
+		if (enc->GetDistance() < 100.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
@@ -179,5 +187,7 @@ void Autonomous::baseGearCenter() {
 			robotDrive->StopMotor();
 
 		}
+	} else {
+		robotDrive->StopMotor();
 	}
 }

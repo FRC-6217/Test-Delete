@@ -108,6 +108,7 @@ public:
 
 	void AutonomousPeriodic() {
 		printf("movement: %i\n", movement);
+		printf("enc: %f\n", enc->GetDistance());
 
 		float distance = ultrasonic->GetValue();
 		if (distance < 214.0) {
@@ -120,6 +121,7 @@ public:
 		distance += 10.5;
 
 		Autonomous::distance = distance;
+		Autonomous::baseGearCenter();
 	}
 
 	void TeleopInit() {
@@ -235,7 +237,7 @@ public:
 				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
 
 				//find green
-				cv::inRange(hsv, cv::Scalar(30,100,150), cv::Scalar(80,255,255), threshOutput);
+				cv::inRange(hsv, cv::Scalar(68,100,150), cv::Scalar(80,255,255), threshOutput);
 				//cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
 				//cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
