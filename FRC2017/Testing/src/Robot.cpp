@@ -33,12 +33,18 @@ class Robot: public frc::IterativeRobot {
 
 	frc::DigitalInput* limitSwitch;
 
-	frc::SendableChooser<int*>* autoChooser;
-	enum autoProgram {CROSS, GEAR_LEFT, GEAR_CENTER, GEAR_RIGHT, BALLS};
+	frc::SendableChooser<const int*>* autoChooser;
+	const int CROSS = 0;
+	const int GEAR_LEFT = 1;
+	const int GEAR_CENTER = 2;
+	const int GEAR_RIGHT = 3;
+	const int BALLS = 4;
 
 	float servoPos;
 	int autoState;
 	bool debounce;
+	bool lockRot;
+	int angleOffset;
 	int count;
 
 	//These ones are static because the VisionThread is static.
@@ -51,12 +57,12 @@ public:
 	void RobotInit() {
 
 		//template is broken, need to use pointers
-		autoChooser = new frc::SendableChooser<int*>();
-		//autoChooser->AddDefault("Cross Line", &CROSS);
-		//autoChooser->AddObject("Left", &GEAR_LEFT);
-		//autoChooser->AddObject("Center", &GEAR_CENTER);
-		//autoChooser->AddObject("Right", &GEAR_RIGHT);
-		//autoChooser->AddObject("Balls", &BALLS);
+		autoChooser = new frc::SendableChooser<const int*>();
+		autoChooser->AddDefault("Cross Line", &CROSS);
+		autoChooser->AddObject("Left", &GEAR_LEFT);
+		autoChooser->AddObject("Center", &GEAR_CENTER);
+		autoChooser->AddObject("Right", &GEAR_RIGHT);
+		autoChooser->AddObject("Balls", &BALLS);
 		frc::SmartDashboard::PutData("Auto mode", autoChooser);
 
 		robotDrive = new frc::RobotDrive(0, 1, 2, 3);
@@ -88,6 +94,8 @@ public:
 		limitSwitch = new frc::DigitalInput(5);
 
 		debounce = true;
+		lockRot = false;
+		angleOffset = 0;
 
 		Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
 	}
@@ -125,14 +133,27 @@ public:
 		distance += 10.5;
 
 		Autonomous::distance = distance;
-		//(frc::SmartDashboard::GetString("Auto", ""))
-		Autonomous::baseGearRight();
+
+		const int result = *autoChooser->GetSelected();
+		if (result == CROSS) {
+			Autonomous::forward();
+		} else if (result == GEAR_LEFT) {
+			Autonomous::baseGearLeft();
+		} else if (result == GEAR_CENTER) {
+			Autonomous::baseGearCenter();
+		} else if (result == GEAR_RIGHT) {
+			Autonomous::baseGearRight();
+		} else if (result == BALLS) {
+			//todo
+		}
 	}
 
 	void TeleopInit() {
 		solenoid->Set(frc::DoubleSolenoid::Value::kOff);
 		count = 0;
 		enc->Reset();
+		lockRot = false;
+
 	}
 
 	void TeleopPeriodic() {
@@ -147,8 +168,13 @@ public:
 		float twist = fabs(joystick->GetTwist()) > 0.1 ? joystick->GetTwist() / 2 : 0.0;
 
 		if (joystick->GetRawButton(2)) {
-			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * Autonomous::movement, y, KP_GYRO * gyro->GetAngle());
+			if (!lockRot) {
+				lockRot = true;
+				angleOffset = gyro->GetAngle() * -1;
+			}
+			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * Autonomous::movement, y, KP_GYRO * (gyro->GetAngle() + angleOffset));
 		} else {
+			lockRot = false;
 			robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
 		}
 		printf("Gyro: %f\n", gyro->GetAngle());
