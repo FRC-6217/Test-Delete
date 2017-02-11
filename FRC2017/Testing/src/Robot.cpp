@@ -33,7 +33,7 @@ class Robot: public frc::IterativeRobot {
 
 	frc::DigitalInput* limitSwitch;
 
-	frc::SendableChooser<int>* autoChooser;
+	frc::SendableChooser<int*>* autoChooser;
 	enum autoProgram {CROSS, GEAR_LEFT, GEAR_CENTER, GEAR_RIGHT, BALLS};
 
 	float servoPos;
@@ -50,19 +50,14 @@ public:
 	//Startup function
 	void RobotInit() {
 
-		//autoChooser = new frc::SendableChooser<int>();
-		/*autoChooser->AddDefault("Cross Line", CROSS);
-		autoChooser->AddObject("Left", GEAR_LEFT);
-		autoChooser->AddObject("Center", GEAR_CENTER);
-		autoChooser->AddObject("Right", GEAR_RIGHT);
-		autoChooser->AddObject("Balls", BALLS);
+		//template is broken, need to use pointers
+		autoChooser = new frc::SendableChooser<int*>();
+		//autoChooser->AddDefault("Cross Line", &CROSS);
+		//autoChooser->AddObject("Left", &GEAR_LEFT);
+		//autoChooser->AddObject("Center", &GEAR_CENTER);
+		//autoChooser->AddObject("Right", &GEAR_RIGHT);
+		//autoChooser->AddObject("Balls", &BALLS);
 		frc::SmartDashboard::PutData("Auto mode", autoChooser);
-		*/
-		frc::SmartDashboard::PutNumber("Auto", CROSS);
-		frc::SmartDashboard::PutNumber("Auto", GEAR_LEFT);
-		frc::SmartDashboard::PutNumber("Auto", GEAR_CENTER);
-		frc::SmartDashboard::PutNumber("Auto", GEAR_RIGHT);
-		frc::SmartDashboard::PutNumber("Auto", BALLS);
 
 		robotDrive = new frc::RobotDrive(0, 1, 2, 3);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kFrontRightMotor, true);
@@ -131,7 +126,7 @@ public:
 
 		Autonomous::distance = distance;
 		//(frc::SmartDashboard::GetString("Auto", ""))
-		Autonomous::baseGearCenter();
+		Autonomous::baseGearRight();
 	}
 
 	void TeleopInit() {
@@ -151,7 +146,11 @@ public:
 		float y = fabs(joystick->GetY()) > 0.1 ? joystick->GetY() : 0.0;
 		float twist = fabs(joystick->GetTwist()) > 0.1 ? joystick->GetTwist() / 2 : 0.0;
 
-		robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
+		if (joystick->GetRawButton(2)) {
+			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * Autonomous::movement, y, KP_GYRO * gyro->GetAngle());
+		} else {
+			robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
+		}
 		printf("Gyro: %f\n", gyro->GetAngle());
 
 		if (joystick->GetRawButton(7)) {
@@ -246,8 +245,9 @@ public:
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
 				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
 
+
 				//find green
-				cv::inRange(hsv, cv::Scalar(68,100,150), cv::Scalar(80,255,255), threshOutput);
+				cv::inRange(hsv, cv::Scalar(74,130,190), cv::Scalar(90,210,255), threshOutput);
 				//cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
 				//cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
@@ -261,22 +261,34 @@ public:
 				std::vector<cv::Point2f> centerLarge;
 				std::vector<float> radiusLarge;
 
+				int maxY = source.cols;
+				int secY = source.cols;
+				int maxIndex = -1;
+				int secIndex = -1;
 				//Create a circle around contours
 				for( unsigned int i = 0; i < contours.size(); i++ ) {
 					cv::approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 3, true);
 					minEnclosingCircle((cv::Mat)contours_poly[i], center[i], radius[i]);
 
 					if (radius[i] > 10.0) {
+						if (center[i].y < maxY) {
+							secY = maxY;
+							secIndex = maxIndex;
+							maxY = center[i].y;
+							maxIndex = i;
+						} else if (center[i].y < secY) {
+							secY = center[i].y;
+							secIndex = i;
+						}
 						cv::Scalar color = cv::Scalar(50, 100, 200);
 						//cv::drawContours(source, contours, i, color, 2, 8, hierarchy, 0, cv::Point());
 						cv::drawContours(source, contours_poly, i, color, 1, 8, hierarchy, 0, cv::Point());
 						//cv::rectangle(source, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0);
-						cv::circle(source, center[i], (int)radius[i], color, 2, 8, 0);
-
-						centerLarge.push_back(center[i]);
-						radiusLarge.push_back(radius[i]);
 					}
 				}
+
+				//draw a line
+				cv::line(source, cv::Point(source.cols/2,0), cv::Point(source.cols/2,source.rows), cv::Scalar(0,0,255), 1);
 
 				//cv::Mat output = cv::Mat::zeros(threshOutput.size(), CV_8UC3);
 				//Draw onto camera input
@@ -289,7 +301,11 @@ public:
 				int width = source.cols;
 				int pixelCenter = width / 2;
 
-				if (centerLarge.size() > 0) {
+				if (maxIndex > -1 && secIndex > -1) {
+					centerLarge.push_back(center[maxIndex]);
+					centerLarge.push_back(center[secIndex]);
+					cv::circle(source, center[maxIndex], (int)radius[maxIndex], cv::Scalar(50, 100, 200), 2, 8, 0);
+					cv::circle(source, center[secIndex], (int)radius[secIndex], cv::Scalar(50, 100, 200), 2, 8, 0);
 					actuate = true;
 
 					cv::reduce(centerLarge, mean, 1, cv::ReduceTypes::REDUCE_AVG);
@@ -298,6 +314,11 @@ public:
 					cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
 
 					Autonomous::movement = meanPoint.x - (float)pixelCenter;
+					if (Autonomous::movement < 5 && Autonomous::movement > 0) {
+						Autonomous::movement = 5;
+					} else if (Autonomous::movement > -5 && Autonomous::movement < 0) {
+						Autonomous::movement = -5;
+					}
 
 				} else {
 					actuate = false;
