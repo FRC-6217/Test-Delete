@@ -17,7 +17,7 @@ public:
 	static void baseGearCenter();
 	static void forward();
 	static void baseGearRight();
-	static void baseGearleft();
+	static void baseGearLeft();
 private:
 	static frc::Encoder* enc;
 	static frc::RobotDrive* robotDrive;
