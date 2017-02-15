@@ -19,7 +19,6 @@
 class Robot: public frc::IterativeRobot {
 
 	//Declare the used variables
-	frc::DoubleSolenoid* solenoid;
 	frc::Joystick* joystick;
 	frc::RobotDrive* robotDrive;
 	frc::Joystick* xboxjoystick;
@@ -27,9 +26,7 @@ class Robot: public frc::IterativeRobot {
 	frc::AnalogGyro* gyro;
 	frc::Encoder* enc;
 
-	frc::Servo* servo;
 	frc::VictorSP* winch;
-	frc::VictorSP* winch2;
 
 	frc::DigitalInput* limitSwitch;
 
@@ -75,23 +72,18 @@ public:
 		joystick->SetAxisChannel(Joystick::kTwistAxis, 2);
 		xboxjoystick = new frc::Joystick(1);
 
-		solenoid = new frc::DoubleSolenoid(0, 1);
-
 		//Start the visionThread function in a different thread.
 		std::thread visionThread(VisionThread);
 		visionThread.detach();
 
 		ultrasonic = new frc::AnalogInput(2);
 		gyro = new frc::AnalogGyro(0);
-		enc = new frc::Encoder(2, 3, false, frc::Encoder::EncodingType::k4X);
+		enc = new frc::Encoder(0, 1, false, frc::Encoder::EncodingType::k4X);
 		enc->SetDistancePerPulse(-0.0211600227);
 
-		servo = new frc::Servo(4);
-		servoPos = 0.0;
 		winch = new frc::VictorSP(5);
-		winch2 = new frc::VictorSP(6);
 
-		limitSwitch = new frc::DigitalInput(5);
+		limitSwitch = new frc::DigitalInput(2);
 
 		debounce = true;
 		lockRot = false;
@@ -149,7 +141,6 @@ public:
 	}
 
 	void TeleopInit() {
-		solenoid->Set(frc::DoubleSolenoid::Value::kOff);
 		count = 0;
 		enc->Reset();
 		lockRot = false;
@@ -193,10 +184,8 @@ public:
 		if(joystick->GetRawButton(6)) {
 			if (count < 40) {
 				winch->Set(-0.3);
-				winch2->Set(-0.3);
 			} else if (count < 40) {
 				winch->Set(0.0);
-				winch2->Set(0.0);
 			} else {
 				count = 0;
 			}
@@ -204,20 +193,16 @@ public:
 		} else if (joystick->GetRawButton(5)) {
 			if (count < 40) {
 				winch->Set(-0.63);
-				winch2->Set(-0.63);
 			} else if (count < 40) {
 					winch->Set(0.0);
-					winch2->Set(0.0);
 			} else {
 					count = 0;
 			}
 			count++;
 		} else if (joystick->GetRawButton(4)) {
 			winch->Set(-0.1);
-			winch2->Set(-0.1);
 		} else {
 			winch->Set(0.0);
-			winch2->Set(0.0);
 		}
 
 
