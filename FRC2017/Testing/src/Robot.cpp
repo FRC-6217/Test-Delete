@@ -46,11 +46,12 @@ class Robot: public frc::IterativeRobot {
 	bool lockRot;
 	int angleOffset;
 	int count;
+	bool relative;
 
 	//These ones are static because the VisionThread is static.
 	static bool actuate;
 	static int movement;
-	static bool process;
+	static bool camera;
 	static PIDNumSource* visionSource;
 
 	PIDNumOutput* visionOutput;
@@ -102,6 +103,7 @@ public:
 		debounce = true;
 		lockRot = false;
 		angleOffset = 0;
+		relative = false;
 
 		Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
 	}
@@ -121,7 +123,7 @@ public:
 		gyro->Reset();
 		enc->Reset();
 		Autonomous::autoState = 0;
-		process = true;
+		camera = true;
 	}
 
 	void AutonomousPeriodic() {
@@ -185,7 +187,11 @@ public:
 			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * Autonomous::movement, y, KP_GYRO * (gyro->GetAngle() + angleOffset));
 		} else {
 			lockRot = false;
-			robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
+			if (!relative) {
+				robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
+			} else {
+				robotDrive->MecanumDrive_Cartesian(x, y, twist);
+			}
 		}
 		printf("Gyro: %f\n", gyro->GetAngle());
 
@@ -194,7 +200,14 @@ public:
 		}
 
 		if (joystick->GetRawButton(11) && debounce) {
-			process = !process;
+			camera = !camera;
+			debounce = false;
+		} else if (joystick->GetRawButton(11) == false) {
+			debounce = true;
+		}
+
+		if (joystick->GetRawButton(9) && debounce) {
+			relative = !relative;
 			debounce = false;
 		} else if (joystick->GetRawButton(11) == false) {
 			debounce = true;
@@ -236,16 +249,26 @@ public:
 	{
 		//Set up the camera
 		int g_exp = 50;
-		//frc::SmartDashboard::PutNumber("Exp", g_exp);
+
 		cs::UsbCamera camera = cs::UsbCamera("usb0",0);
 		camera.SetBrightness(5);
 		camera.SetExposureManual(g_exp);
+
+		cs::UsbCamera backCamera = cs::UsbCamera("usb1", 1);
+		backCamera.SetBrightness(5);
+		backCamera.SetExposureManual(g_exp);
 		//frc::SmartDashboard::PutNumber("Brightness", camera.GetBrightness());
 
 		//Start capture, create outputs
 		CameraServer::GetInstance()->StartAutomaticCapture(camera);
+		CameraServer::GetInstance()->StartAutomaticCapture(backCamera);
+
 		camera.SetResolution(320, 240);
-		cs::CvSink cvSink = CameraServer::GetInstance()->GetVideo();
+		backCamera.SetResolution(320, 240);
+
+		cs::CvSink cvSink = CameraServer::GetInstance()->GetVideo(camera);
+		cs::CvSink backSink = CameraServer::GetInstance()->GetVideo(backCamera);
+
 		cs::CvSource outputStreamStd =  CameraServer::GetInstance()->PutVideo("Output", 320, 240);
 		cv::Mat source;
 		cv::Mat hsv;
@@ -258,9 +281,8 @@ public:
 
 		//main vision loop
 		while(true) {
-			cvSink.GrabFrame(source);
-
-			if (process) {
+			if (camera) {
+				cvSink.GrabFrame(source);
 
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
 				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
@@ -338,6 +360,8 @@ public:
 				} else {
 					actuate = false;
 				}
+			} else {
+				backSink.GrabFrame(source);
 			}
 			//END TEST CODE
 
@@ -349,7 +373,7 @@ public:
 
 bool Robot::actuate = false;
 int Robot::movement = 0;
-bool Robot::process = true;
+bool Robot::camera = true;
 PIDNumSource* Robot::visionSource = nullptr;
 
 START_ROBOT_CLASS(Robot)
