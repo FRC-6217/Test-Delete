@@ -12,6 +12,8 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
+#include "PIDNumSource.h"
+#include "PIDNumOutput.h"
 
 #include "Autonomous.h"
 
@@ -31,6 +33,7 @@ class Robot: public frc::IterativeRobot {
 	frc::DigitalInput* limitSwitch;
 
 	frc::SendableChooser<const int*>* autoChooser;
+
 	const int CROSS = 0;
 	const int GEAR_LEFT = 1;
 	const int GEAR_CENTER = 2;
@@ -48,10 +51,21 @@ class Robot: public frc::IterativeRobot {
 	static bool actuate;
 	static int movement;
 	static bool process;
+	static PIDNumSource* visionSource;
+
+	PIDNumOutput* visionOutput;
+	frc::PIDController* visionControl;
 public:
+
+	Robot() {
+		visionSource = new PIDNumSource(0.0);
+	}
 
 	//Startup function
 	void RobotInit() {
+		visionOutput = new PIDNumOutput();
+		visionControl = new frc::PIDController(0.01, 0.0001, 0.0, visionSource, visionOutput);
+		visionControl->SetSetpoint(0.0);
 
 		//template is broken, need to use pointers
 		autoChooser = new frc::SendableChooser<const int*>();
@@ -114,6 +128,8 @@ public:
 		printf("movement: %i\n", movement);
 		printf("enc: %f\n", enc->GetDistance());
 
+
+
 		float distance = ultrasonic->GetValue();
 		if (distance < 214.0) {
 			distance = 0;
@@ -125,6 +141,7 @@ public:
 		distance += 10.5;
 
 		Autonomous::distance = distance;
+		Autonomous::movement = visionOutput->getValue();
 
 		const int result = *autoChooser->GetSelected();
 		if (result == CROSS) {
@@ -150,6 +167,8 @@ public:
 	void TeleopPeriodic() {
 		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-2); //scale speed
 		printf("Encoder: %f\n", enc->GetDistance());
+
+		Autonomous::movement = visionOutput->getValue();
 
 		//printf("Distance: %i\n", limitSwitch->Get());
 
@@ -314,12 +333,7 @@ public:
 					cv::Point2f meanPoint(mean.at<float>(0,0), mean.at<float>(0,1));
 					cv::circle(source, meanPoint, 3, cv::Scalar(0, 0, 255), -1, 8, 0);
 
-					Autonomous::movement = meanPoint.x - (float)pixelCenter;
-					if (Autonomous::movement < 5 && Autonomous::movement > 0) {
-						Autonomous::movement = 5;
-					} else if (Autonomous::movement > -5 && Autonomous::movement < 0) {
-						Autonomous::movement = -5;
-					}
+					visionSource->setInput((double)meanPoint.x - (double)pixelCenter);
 
 				} else {
 					actuate = false;
@@ -336,5 +350,6 @@ public:
 bool Robot::actuate = false;
 int Robot::movement = 0;
 bool Robot::process = true;
+PIDNumSource* Robot::visionSource = nullptr;
 
 START_ROBOT_CLASS(Robot)
