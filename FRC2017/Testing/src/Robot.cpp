@@ -52,7 +52,7 @@ class Robot: public frc::IterativeRobot {
 	//These ones are static because the VisionThread is static.
 	static bool actuate;
 	static int movement;
-	static bool camera;
+	static bool cameraToggle;
 	static PIDNumSource* visionSource;
 
 	PIDNumOutput* visionOutput;
@@ -66,8 +66,8 @@ public:
 	//Startup function
 	void RobotInit() {
 		visionOutput = new PIDNumOutput();
-		visionControl = new frc::PIDController(0.01, 0.0001, 0.0, visionSource, visionOutput);
-		visionControl->SetSetpoint(0.0);
+		visionControl = new frc::PIDController(-0.01, -0.0001, 0.0, visionSource, visionOutput);
+		visionControl->Enable();
 
 		//template is broken, need to use pointers
 		autoChooser = new frc::SendableChooser<const int*>();
@@ -126,10 +126,11 @@ public:
 		gyro->Reset();
 		enc->Reset();
 		Autonomous::autoState = 0;
-		camera = true;
+		cameraToggle = true;
 	}
 
 	void AutonomousPeriodic() {
+		visionControl->SetSetpoint(0.0);
 		printf("movement: %i\n", movement);
 		printf("enc: %f\n", enc->GetDistance());
 
@@ -166,14 +167,18 @@ public:
 		count = 0;
 		enc->Reset();
 		lockRot = false;
+		relative = false;
 
 	}
 
 	void TeleopPeriodic() {
+		visionControl->SetSetpoint(0.0);
 		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-2); //scale speed
-		printf("Encoder: %f\n", enc->GetDistance());
+		//printf("Encoder: %f\n", enc->GetDistance());
+		printf("Gyro: %f\n", gyro->GetAngle());
 
 		Autonomous::movement = visionOutput->getValue();
+		printf("vision: %f\n", visionOutput->getValue());
 
 		//printf("Distance: %i\n", limitSwitch->Get());
 
@@ -187,7 +192,7 @@ public:
 				lockRot = true;
 				angleOffset = gyro->GetAngle() * -1;
 			}
-			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * Autonomous::movement, y, KP_GYRO * (gyro->GetAngle() + angleOffset));
+			robotDrive->MecanumDrive_Cartesian(Autonomous::movement, y, KP_GYRO * (gyro->GetAngle() + angleOffset));
 		} else {
 			lockRot = false;
 			if (!relative) {
@@ -196,14 +201,13 @@ public:
 				robotDrive->MecanumDrive_Cartesian(x, y, twist);
 			}
 		}
-		printf("Gyro: %f\n", gyro->GetAngle());
 
 		if (joystick->GetRawButton(7)) {
 			gyro->Reset();
 		}
 
 		if (joystick->GetRawButton(11) && debounce) {
-			camera = !camera;
+			cameraToggle = !cameraToggle;
 			debounce = false;
 		} else if (joystick->GetRawButton(11) == false) {
 			debounce = true;
@@ -212,7 +216,7 @@ public:
 		if (joystick->GetRawButton(9) && debounce) {
 			relative = !relative;
 			debounce = false;
-		} else if (joystick->GetRawButton(11) == false) {
+		} else if (joystick->GetRawButton(9) == false) {
 			debounce = true;
 		}
 
@@ -241,7 +245,7 @@ public:
 		}
 
 		if (joystick->GetRawButton(1)) {
-			shooter->Set(.7);
+			shooter->Set(.6);
 		} else {
 			shooter->Set(0);
 		}
@@ -288,7 +292,7 @@ public:
 
 		//main vision loop
 		while(true) {
-			if (camera) {
+			if (cameraToggle) {
 				cvSink.GrabFrame(source);
 
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
@@ -296,7 +300,7 @@ public:
 
 
 				//find green
-				cv::inRange(hsv, cv::Scalar(74,130,190), cv::Scalar(90,210,255), threshOutput);
+				cv::inRange(hsv, cv::Scalar(70,100,170), cv::Scalar(90,210,255), threshOutput);
 				//cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
 				//cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
@@ -380,7 +384,7 @@ public:
 
 bool Robot::actuate = false;
 int Robot::movement = 0;
-bool Robot::camera = true;
+bool Robot::cameraToggle = true;
 PIDNumSource* Robot::visionSource = nullptr;
 
 START_ROBOT_CLASS(Robot)
