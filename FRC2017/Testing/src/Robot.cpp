@@ -158,6 +158,7 @@ public:
 	 * SendableChooser make sure to add them to the chooser code above as well.
 	 */
 	void AutonomousInit() override {
+		robotDrive->SetMaxOutput(1.0);
 		visionControl->Enable();
 		gyro->Reset();
 		enc->Reset();
@@ -328,23 +329,23 @@ public:
 		//Change the shooter power (RB - up) (LB - down) (Y - reset)
 		if (xboxjoystick->GetRawButton(6) && debouncePower) {
 			debouncePower = false;
-			shooterPower += .1;
+			shooterPower += 0.1;
 			if (shooterPower > 1.0) {
 				shooterPower = 1.0;
+			}
 		} else if (xboxjoystick->GetRawButton(5) && debouncePower) {
 			debouncePower = false;
-			shooterPower -= -.1;
+			shooterPower -= 0.1;
 			if (shooterPower < 0.0) {
 				shooterPower = 0.0;
 			}
 		} else if (xboxjoystick->GetRawButton(4) && debouncePower) {
 			debouncePower = false;
 			shooterPower = 0.6;
-		} else if (!xboxjoystick->GetRawButton(6) && !xboxjoystick->GetRawButton(5) && !xboxjoystick->GetRawButton(4)) {
+		} else if (xboxjoystick->GetRawButton(6) == false && xboxjoystick->GetRawButton(5) == false && xboxjoystick->GetRawButton(4) == false) {
 			debouncePower = true;
 		}
 	}
-}
 
 	void TestPeriodic() {
 		printf("Switch: %d\n", limitSwitch->Get());
