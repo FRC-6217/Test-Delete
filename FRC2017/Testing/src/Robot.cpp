@@ -48,6 +48,7 @@ class Robot: public frc::IterativeRobot {
 	int angleOffset;
 	int count;
 	bool relative;
+	double shooterPower;
 
 	//These ones are static because the VisionThread is static.
 	static bool actuate;
@@ -77,7 +78,12 @@ public:
 		autoChooser->AddObject("Right", &GEAR_RIGHT);
 		autoChooser->AddObject("Balls", &BALLS);
 		frc::SmartDashboard::PutData("Auto mode", autoChooser);
-
+		frc::SmartDashboard::PutNumber("Shooter Power", 0.0);
+		frc::SmartDashboard::PutString("Drive Mode", "Robot");
+		frc::SmartDashboard::PutNumber("Gyro", 0.0);
+		frc::SmartDashboard::PutNumber("Encoder", 0.0);
+		frc::SmartDashboard::PutNumber("Ultrasonic", 0.0);
+		
 		robotDrive = new frc::RobotDrive(0, 1, 2, 3);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kFrontRightMotor, true);
 		robotDrive->SetInvertedMotor(frc::RobotDrive::MotorType::kRearRightMotor, true);
@@ -106,7 +112,8 @@ public:
 		debounce = true;
 		lockRot = false;
 		angleOffset = 0;
-		relative = false;
+		relative = true;
+		shooterPower = 0.0;
 
 		Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
 	}
@@ -145,6 +152,8 @@ public:
 		distance *= US_SCALE;
 		distance += 10.5;
 
+		frc::SmartDashboard::PutNumber("Ultrasonic", distance);
+		
 		Autonomous::distance = distance;
 		Autonomous::movement = visionOutput->getValue();
 
@@ -170,8 +179,10 @@ public:
 	}
 
 	void TeleopPeriodic() {
+		frc::SmartDashboard::PutNumber("Gyro", gyro->GetAngle());
+		frc::SmartDashboard::PutNumber("Encoder", enc->GetDistance());
+		
 		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-2); //scale speed
-		printf("Encoder: %f\n", enc->GetDistance());
 
 		Autonomous::movement = visionOutput->getValue();
 
@@ -211,6 +222,11 @@ public:
 
 		if (joystick->GetRawButton(9) && debounce) {
 			relative = !relative;
+			if (relative) {
+				frc::SmartDashboard::PutString("Drive Mode", "Robot");
+			} else {
+				frc::SmartDashboard::PutString("Drive Mode", "Field");
+			}
 			debounce = false;
 		} else if (joystick->GetRawButton(11) == false) {
 			debounce = true;
