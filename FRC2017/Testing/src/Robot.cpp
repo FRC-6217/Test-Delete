@@ -44,6 +44,8 @@ class Robot: public frc::IterativeRobot {
 	float servoPos;
 	int autoState;
 	bool debounce;
+	bool debounceTwo;
+	bool debouncePower;
 	bool lockRot;
 	int angleOffset;
 	int count;
@@ -110,10 +112,12 @@ public:
 		limitSwitch = new frc::DigitalInput(2);
 
 		debounce = true;
+		debounceTwo = true;
+		debouncePower = true;
 		lockRot = false;
 		angleOffset = 0;
 		relative = true;
-		shooterPower = 0.0;
+		shooterPower = 0.6;
 
 		Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
 	}
@@ -185,6 +189,7 @@ public:
 
 		frc::SmartDashboard::PutNumber("Gyro", gyro->GetAngle());
 		frc::SmartDashboard::PutNumber("Encoder", enc->GetDistance());
+		frc::SmartDashboard::PutNumber("Shooter Power", shooterPower);
 		
 		robotDrive->SetMaxOutput((joystick->GetRawAxis(3) - 1)/-2); //scale speed
 
@@ -198,6 +203,7 @@ public:
 		float y = fabs(joystick->GetY()) > 0.1 ? joystick->GetY() : 0.0;
 		float twist = fabs(joystick->GetTwist()) > 0.1 ? joystick->GetTwist() / 2 : 0.0;
 
+		//Hold to stay lined up with gear
 		if (joystick->GetRawButton(2)) {
 			if (!lockRot) {
 				lockRot = true;
@@ -207,36 +213,42 @@ public:
 		} else {
 			lockRot = false;
 			if (!relative) {
+				//Move relative to the field
 				robotDrive->MecanumDrive_Cartesian(x, y, twist, gyro->GetAngle());
 			} else {
+				//Move relative to the robot
 				robotDrive->MecanumDrive_Cartesian(x, y, twist);
 			}
 		}
 
+		//Reset the gyro for field-oriented driving
 		if (joystick->GetRawButton(7)) {
 			gyro->Reset();
 		}
 
-		if (joystick->GetRawButton(11) && debounce) {
+		//toggle camera
+		if (joystick->GetRawButton(3) && debounce) {
 			cameraToggle = !cameraToggle;
 			debounce = false;
-		} else if (joystick->GetRawButton(11) == false) {
+		} else if (joystick->GetRawButton(3) == false) {
 			debounce = true;
 		}
 
-		if (joystick->GetRawButton(9) && debounce) {
+		//toggle drive mode
+		if (joystick->GetRawButton(11) && debounceTwo) {
 			relative = !relative;
 			if (relative) {
 				frc::SmartDashboard::PutString("Drive Mode", "Robot");
 			} else {
 				frc::SmartDashboard::PutString("Drive Mode", "Field");
 			}
-			debounce = false;
-		} else if (joystick->GetRawButton(9) == false) {
-			debounce = true;
+			debounceTwo = false;
+		} else if (joystick->GetRawButton(11) == false) {
+			debounceTwo = true;
 		}
 
-		if(joystick->GetRawButton(6)) {
+		//Move winch medium (X)
+		if(xboxjoystick->GetRawButton(3)) {
 			if (count < 40) {
 				winch->Set(-0.3);
 			} else if (count < 40) {
@@ -245,7 +257,8 @@ public:
 				count = 0;
 			}
 			count++;
-		} else if (joystick->GetRawButton(5)) {
+		//move winch fast (A)
+		} else if (xboxjoystick->GetRawButton(1)) {
 			if (count < 40) {
 				winch->Set(-0.63);
 			} else if (count < 40) {
@@ -254,18 +267,40 @@ public:
 					count = 0;
 			}
 			count++;
-		} else if (joystick->GetRawButton(4)) {
-			winch->Set(-0.1);
+		//move winch very slow (B)
+		} else if (xboxjoystick->GetRawButton(2)) {
+			winch->Set(-0.2);
 		} else {
 			winch->Set(0.0);
 		}
 
-		if (joystick->GetRawButton(1)) {
-			shooter->Set(.6);
+		//spin the shooter (right trigger)
+		if (xboxjoystick->GetRawAxis(3) > 0.8) {
+			shooter->Set(shooterPower);
 		} else {
 			shooter->Set(0);
 		}
+
+		//Change the shooter power (RB - up) (LB - down) (Y - reset)
+		if (xboxjoystick->GetRawButton(6) && debouncePower) {
+			debouncePower = false;
+			shooterPower += .1;
+			if (shooterPower > 1.0) {
+				shooterPower = 1.0;
+		} else if (xboxjoystick->GetRawButton(5) && debouncePower) {
+			debouncePower = false;
+			shooterPower -= -.1;
+			if (shooterPower < 0.0) {
+				shooterPower = 0.0;
+			}
+		} else if (xboxjoystick->GetRawButton(4) && debouncePower) {
+			debouncePower = false;
+			shooterPower = 0.6;
+		} else if (!xboxjoystick->GetRawButton(6) && !xboxjoystick->GetRawButton(5) && !xboxjoystick->GetRawButton(4)) {
+			debouncePower = true;
+		}
 	}
+}
 
 	void TestPeriodic() {
 		printf("Switch: %d\n", limitSwitch->Get());
