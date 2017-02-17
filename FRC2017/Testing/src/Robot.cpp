@@ -29,6 +29,7 @@ class Robot: public frc::IterativeRobot {
 	frc::Encoder* enc;
 
 	frc::VictorSP* winch;
+	frc::VictorSP* shooter;
 
 	frc::DigitalInput* limitSwitch;
 
@@ -87,6 +88,7 @@ public:
 		joystick->SetAxisChannel(Joystick::kTwistAxis, 2);
 		xboxjoystick = new frc::Joystick(1);
 
+
 		//Start the visionThread function in a different thread.
 		std::thread visionThread(VisionThread);
 		visionThread.detach();
@@ -97,6 +99,7 @@ public:
 		enc->SetDistancePerPulse(-0.0211600227);
 
 		winch = new frc::VictorSP(5);
+		shooter = new frc::VictorSP(6);
 
 		limitSwitch = new frc::DigitalInput(2);
 
@@ -237,7 +240,11 @@ public:
 			winch->Set(0.0);
 		}
 
-
+		if (joystick->GetRawButton(1)) {
+			shooter->Set(.7);
+		} else {
+			shooter->Set(0);
+		}
 	}
 
 	void TestPeriodic() {
