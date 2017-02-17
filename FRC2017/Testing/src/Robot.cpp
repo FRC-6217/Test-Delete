@@ -24,7 +24,7 @@
  * | 0 | 0 | 0 | Off
  * | 0 | 0 | 1 | Autonomous
  * | 0 | 1 | 0 | Lined up with peg
- * | 0 | 1 | 1 |
+ * | 0 | 1 | 1 | Teleop normal
  * | 1 | 0 | 0 |
  * | 1 | 0 | 1 |
  * | 1 | 1 | 0 |
@@ -87,7 +87,7 @@ public:
 	void RobotInit() {
 		visionOutput = new PIDNumOutput();
 		visionControl = new frc::PIDController(-0.01, -0.0001, 0.0, visionSource, visionOutput);
-		visionControl->Enable();
+
 
 		//template is broken, need to use pointers
 		autoChooser = new frc::SendableChooser<const int*>();
@@ -140,6 +140,10 @@ public:
 		shooterPower = 0.6;
 
 		Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
+
+		arduino[0]->Set(false);
+		arduino[1]->Set(false);
+		arduino[2]->Set(false);
 	}
 
 	/*
@@ -154,10 +158,15 @@ public:
 	 * SendableChooser make sure to add them to the chooser code above as well.
 	 */
 	void AutonomousInit() override {
+		visionControl->Enable();
 		gyro->Reset();
 		enc->Reset();
 		Autonomous::autoState = 0;
 		cameraToggle = true;
+
+		arduino[0]->Set(false);
+		arduino[1]->Set(false);
+		arduino[2]->Set(true);
 	}
 
 	void AutonomousPeriodic() {
@@ -197,6 +206,7 @@ public:
 	}
 
 	void TeleopInit() {
+		visionControl->Disable();
 		count = 0;
 		enc->Reset();
 		lockRot = false;
@@ -227,9 +237,24 @@ public:
 			if (!lockRot) {
 				lockRot = true;
 				angleOffset = gyro->GetAngle() * -1;
+				visionControl->Enable();
 			}
 			robotDrive->MecanumDrive_Cartesian(Autonomous::movement, y, KP_GYRO * (gyro->GetAngle() + angleOffset));
+
+			if (visionControl->GetError() < 3) {
+				arduino[0]->Set(false);
+				arduino[1]->Set(true);
+				arduino[2]->Set(false);
+			} else {
+				arduino[0]->Set(false);
+				arduino[1]->Set(true);
+				arduino[2]->Set(true);
+			}
 		} else {
+			arduino[0]->Set(false);
+			arduino[1]->Set(true);
+			arduino[2]->Set(true);
+			visionControl->Disable();
 			lockRot = false;
 			if (!relative) {
 				//Move relative to the field
@@ -324,6 +349,12 @@ public:
 	void TestPeriodic() {
 		printf("Switch: %d\n", limitSwitch->Get());
 
+	}
+
+	void DisabledInit() {
+		arduino[0]->Set(false);
+		arduino[1]->Set(false);
+		arduino[2]->Set(false);
 	}
 
 	static void VisionThread()
