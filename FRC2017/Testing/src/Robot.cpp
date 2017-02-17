@@ -17,6 +17,20 @@
 
 #include "Autonomous.h"
 
+/* Arduino control chart
+ * | Outputs   |Effect
+ * |p3 |p4 |p5 |
+ * ___________________
+ * | 0 | 0 | 0 | Off
+ * | 0 | 0 | 1 | Autonomous
+ * | 0 | 1 | 0 | Lined up with peg
+ * | 0 | 1 | 1 |
+ * | 1 | 0 | 0 |
+ * | 1 | 0 | 1 |
+ * | 1 | 1 | 0 |
+ * | 1 | 1 | 1 |
+ */
+
 //Start the class definition
 class Robot: public frc::IterativeRobot {
 
@@ -34,6 +48,9 @@ class Robot: public frc::IterativeRobot {
 	frc::DigitalInput* limitSwitch;
 
 	frc::SendableChooser<const int*>* autoChooser;
+
+	//for communicating with arduino
+	frc::DigitalOutput* arduino[3];
 
 	const int CROSS = 0;
 	const int GEAR_LEFT = 1;
@@ -96,6 +113,9 @@ public:
 		joystick->SetAxisChannel(Joystick::kTwistAxis, 2);
 		xboxjoystick = new frc::Joystick(1);
 
+		arduino[0] = new DigitalOutput(3);
+		arduino[1] = new DigitalOutput(4);
+		arduino[2] = new DigitalOutput(5);
 
 		//Start the visionThread function in a different thread.
 		std::thread visionThread(VisionThread);
@@ -181,7 +201,6 @@ public:
 		enc->Reset();
 		lockRot = false;
 		relative = false;
-
 	}
 
 	void TeleopPeriodic() {
