@@ -172,10 +172,6 @@ public:
 
 	void AutonomousPeriodic() {
 		visionControl->SetSetpoint(0.0);
-		printf("movement: %i\n", movement);
-		printf("enc: %f\n", enc->GetDistance());
-
-
 
 		float distance = ultrasonic->GetValue();
 		if (distance < 214.0) {
@@ -188,6 +184,8 @@ public:
 		distance += 10.5;
 
 		frc::SmartDashboard::PutNumber("Ultrasonic", distance);
+		frc::SmartDashboard::PutNumber("Gyro", gyro->GetAngle());
+		frc::SmartDashboard::PutNumber("Encoder", enc->GetDistance());
 		
 		Autonomous::distance = distance;
 		Autonomous::movement = visionOutput->getValue();
@@ -305,7 +303,7 @@ public:
 		//move winch fast (A)
 		} else if (xboxjoystick->GetRawButton(1)) {
 			if (count < 40) {
-				winch->Set(-0.63);
+				winch->Set(-0.70);
 			} else if (count < 40) {
 					winch->Set(0.0);
 			} else {

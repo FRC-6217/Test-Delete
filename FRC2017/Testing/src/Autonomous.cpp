@@ -49,14 +49,14 @@ void Autonomous::baseGearRight() {
 	} else if (autoState == 2) {
 		//Line up with tape, while moving forward until close to gear
 
-		if (distance > 15.0) {
-			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, -0.2, KP_GYRO * gyro->GetAngle());
+		if (distance > 25.0) {
+			robotDrive->MecanumDrive_Cartesian(movement, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
 			autoState = 3;
 		}
 	} else if (autoState == 3) {
-		if (distance > 10.5) {
+		if (distance > 17.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
@@ -104,7 +104,6 @@ void Autonomous::forward(){
 		robotDrive->MecanumDrive_Cartesian(0.0, -0.4, KP_GYRO * gyro->GetAngle());
 	} else {
 		robotDrive->StopMotor();
-		enc->Reset();
 	}
 }
 
@@ -131,14 +130,14 @@ void Autonomous::baseGearLeft() {
 	} else if (autoState == 2) {
 		//Line up with tape, while moving forward until close to gear
 
-		if (distance > 15.0) {
-			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, -0.2, KP_GYRO * gyro->GetAngle());
+		if (distance > 25.0) {
+			robotDrive->MecanumDrive_Cartesian(movement, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
 			autoState = 3;
 		}
 	} else if (autoState == 3) {
-		if (distance > 10.5) {
+		if (distance > 17.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
@@ -194,14 +193,14 @@ void Autonomous::baseGearCenter() {
 	} else if (autoState == 1) {
 		//Line up with tape, while moving forward until close to gear
 
-		if (distance > 15.0) {
-			robotDrive->MecanumDrive_Cartesian(KP_MOVEMENT * movement, -0.2, KP_GYRO * gyro->GetAngle());
+		if (distance > 25.0) {
+			robotDrive->MecanumDrive_Cartesian(movement, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
-
+			autoState = 3;
 		}
 	} else if (autoState == 3) {
-		if (distance > 10.5) {
+		if (distance > 17.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
