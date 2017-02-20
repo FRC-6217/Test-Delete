@@ -29,7 +29,7 @@ void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::An
 void Autonomous::baseGearRight() {
 	if (autoState == 0) {
 		//Move forward until a distance is reached
-		if (enc->GetDistance() < 79.0) {
+		if (enc->GetDistance() < 75.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
@@ -39,7 +39,7 @@ void Autonomous::baseGearRight() {
 	} else if (autoState == 1) {
 		//Turn 45-ish degrees
 		if (gyro->GetAngle() > -45.0) {
-			robotDrive->MecanumDrive_Cartesian(0.0,0.0,-0.4);
+			robotDrive->MecanumDrive_Cartesian(0.0,0.0,-0.25);
 		} else {
 			robotDrive->StopMotor();
 			autoState = 2;
@@ -49,14 +49,14 @@ void Autonomous::baseGearRight() {
 	} else if (autoState == 2) {
 		//Line up with tape, while moving forward until close to gear
 
-		if (distance > 25.0) {
-			robotDrive->MecanumDrive_Cartesian(movement, -0.2, KP_GYRO * gyro->GetAngle());
+		if (distance > 20.0) {
+			robotDrive->MecanumDrive_Cartesian(movement, -0.15, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
 			autoState = 3;
 		}
 	} else if (autoState == 3) {
-		if (distance > 17.0) {
+		if (distance > 15.5) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
@@ -183,7 +183,7 @@ void Autonomous::baseGearCenter() {
 	if (autoState == 0) {
 		//Move forward until a distance is reached, across line
 		if (enc->GetDistance() < 60.0) {
-			robotDrive->MecanumDrive_Cartesian(0.0, -0.3, KP_GYRO * gyro->GetAngle());
+			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
 			robotDrive->StopMotor();
 			autoState = 1;

@@ -51,6 +51,7 @@ class Robot: public frc::IterativeRobot {
 
 	//for communicating with arduino
 	frc::DigitalOutput* arduino[3];
+	frc::SerialPort* serial;
 
 	const int CROSS = 0;
 	const int GEAR_LEFT = 1;
@@ -77,6 +78,8 @@ class Robot: public frc::IterativeRobot {
 
 	PIDNumOutput* visionOutput;
 	frc::PIDController* visionControl;
+
+	static double values[6];
 public:
 
 	Robot() {
@@ -85,8 +88,17 @@ public:
 
 	//Startup function
 	void RobotInit() {
+
+		frc::SmartDashboard::PutNumber("H_Low",0.0);
+		frc::SmartDashboard::PutNumber("S_Low",0.0);
+		frc::SmartDashboard::PutNumber("V_Low",0.0);
+		frc::SmartDashboard::PutNumber("H_High",0.0);
+		frc::SmartDashboard::PutNumber("S_High",0.0);
+		frc::SmartDashboard::PutNumber("V_High",0.0);
+
 		visionOutput = new PIDNumOutput();
-		visionControl = new frc::PIDController(-0.01, -0.0001, 0.0, visionSource, visionOutput);
+		visionControl = new frc::PIDController(-0.004, -0.00005, 0.0, visionSource, visionOutput);
+		visionControl->SetInputRange(-0.3,0.3);
 
 
 		//template is broken, need to use pointers
@@ -116,6 +128,7 @@ public:
 		arduino[0] = new DigitalOutput(3);
 		arduino[1] = new DigitalOutput(4);
 		arduino[2] = new DigitalOutput(5);
+		serial = new frc::SerialPort(9600, frc::SerialPort::kUSB1);
 
 		//Start the visionThread function in a different thread.
 		std::thread visionThread(VisionThread);
@@ -270,10 +283,10 @@ public:
 		}
 
 		//toggle camera
-		if (joystick->GetRawButton(3) && debounce) {
+		if (xboxjoystick->GetRawButton(8) && debounce) {
 			cameraToggle = !cameraToggle;
 			debounce = false;
-		} else if (joystick->GetRawButton(3) == false) {
+		} else if (xboxjoystick->GetRawButton(8) == false) {
 			debounce = true;
 		}
 
@@ -343,11 +356,22 @@ public:
 		} else if (xboxjoystick->GetRawButton(6) == false && xboxjoystick->GetRawButton(5) == false && xboxjoystick->GetRawButton(4) == false) {
 			debouncePower = true;
 		}
+
+		values[0] = frc::SmartDashboard::GetNumber("H_Low",0.0);
+		values[1] = frc::SmartDashboard::GetNumber("S_Low",0.0);
+		values[2] = frc::SmartDashboard::GetNumber("V_Low",0.0);
+		values[3] = frc::SmartDashboard::GetNumber("H_High",0.0);
+		values[4] = frc::SmartDashboard::GetNumber("S_High",0.0);
+		values[5] = frc::SmartDashboard::GetNumber("V_High",0.0);
+		printf("Values %f\n", values[0]);
 	}
 
 	void TestPeriodic() {
 		printf("Switch: %d\n", limitSwitch->Get());
-
+		uint8_t data[1];
+		char* read = new char[serial->GetBytesReceived()];
+		serial->Read(read, serial->GetBytesReceived());
+		frc::SmartDashboard::PutString("Serial\n", std::string(read));
 	}
 
 	void DisabledInit() {
@@ -361,11 +385,11 @@ public:
 		//Set up the camera
 		int g_exp = 50;
 
-		cs::UsbCamera camera = cs::UsbCamera("usb0",0);
+		cs::UsbCamera camera = cs::UsbCamera("usb0",1);
 		camera.SetBrightness(5);
 		camera.SetExposureManual(g_exp);
 
-		cs::UsbCamera backCamera = cs::UsbCamera("usb1", 1);
+		cs::UsbCamera backCamera = cs::UsbCamera("usb1", 0);
 		backCamera.SetBrightness(5);
 		backCamera.SetExposureManual(g_exp);
 		//frc::SmartDashboard::PutNumber("Brightness", camera.GetBrightness());
@@ -396,11 +420,12 @@ public:
 				cvSink.GrabFrame(source);
 
 				cvtColor(source, hsv, cv::COLOR_BGR2HSV);
-				cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
+				//cv::GaussianBlur(hsv, hsv, cv::Size(5, 5), 2, 2);
 
 
 				//find green
-				cv::inRange(hsv, cv::Scalar(70,100,170), cv::Scalar(90,210,255), threshOutput);
+				//cv::inRange(hsv, cv::Scalar(values[0],values[1],values[2]), cv::Scalar(values[3],values[4],values[5]), threshOutput);
+				cv::inRange(hsv, cv::Scalar(80,160,220), cv::Scalar(90,250,255), threshOutput);
 				//cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
 				//cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
@@ -470,6 +495,7 @@ public:
 
 				} else {
 					actuate = false;
+					Autonomous::movement = 0.0;
 				}
 			} else {
 				backSink.GrabFrame(source);
@@ -486,5 +512,6 @@ bool Robot::actuate = false;
 int Robot::movement = 0;
 bool Robot::cameraToggle = true;
 PIDNumSource* Robot::visionSource = nullptr;
+double Robot::values[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
 
 START_ROBOT_CLASS(Robot)
