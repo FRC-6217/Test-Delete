@@ -314,7 +314,7 @@ class Robot: public frc::IterativeRobot {
         //Move winch medium (X)
         if(xboxjoystick->GetRawButton(3)) {
             if (count < 40) {
-                winch->Set(-0.3);
+                winch->Set(0.4);
             } else if (count < 40) {
                 winch->Set(0.0);
             } else {
@@ -324,7 +324,7 @@ class Robot: public frc::IterativeRobot {
             //move winch fast (A)
         } else if (xboxjoystick->GetRawButton(1)) {
             if (count < 40) {
-                winch->Set(-0.70);
+                winch->Set(0.70);
             } else if (count < 40) {
                 winch->Set(0.0);
             } else {
@@ -333,7 +333,7 @@ class Robot: public frc::IterativeRobot {
             count++;
             //move winch very slow (B)
         } else if (xboxjoystick->GetRawButton(2)) {
-            winch->Set(-0.2);
+            winch->Set(0.2);
         } else {
             winch->Set(0.0);
         }

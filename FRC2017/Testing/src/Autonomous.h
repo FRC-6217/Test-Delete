@@ -24,7 +24,7 @@ private:
 	static frc::AnalogGyro* gyro;
 	static frc::DigitalInput* limitSwitch;
 
-	static frc::Timer* Autonomous::timer;
+	static frc::Timer* timer;
 };
 
 #endif /* SRC_AUTONOMOUS_H_ */
