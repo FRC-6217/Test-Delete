@@ -23,6 +23,8 @@ private:
 	static frc::RobotDrive* robotDrive;
 	static frc::AnalogGyro* gyro;
 	static frc::DigitalInput* limitSwitch;
+
+	static frc::Timer* Autonomous::timer;
 };
 
 #endif /* SRC_AUTONOMOUS_H_ */

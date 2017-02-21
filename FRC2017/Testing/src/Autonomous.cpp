@@ -17,12 +17,15 @@ frc::Encoder* Autonomous::enc;
 frc::RobotDrive* Autonomous::robotDrive;
 frc::AnalogGyro* Autonomous::gyro;
 frc::DigitalInput* Autonomous::limitSwitch;
+frc::Timer* Autonomous::timer;
 
 void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw) {
 	enc = encoder;
 	robotDrive = drive;
 	gyro = gyroscope;
 	limitSwitch = sw;
+
+	timer = new frc::Timer();
 
 }
 
@@ -61,12 +64,16 @@ void Autonomous::baseGearRight() {
 		} else {
 			robotDrive->StopMotor();
 			autoState = 4;
+			timer->Reset();
+			timer->Start();
 		}
 	} else if (autoState == 4) {
-		//Wait for gear to be removed
+		//Wait for time period
 		robotDrive->StopMotor();
-		if (limitSwitch->Get() == false) {
+		if (timer->Get() > 3.0) {
 			autoState = 5;
+			timer->Stop();
+			timer->Reset();
 		}
 	} else if (autoState == 5) {
 		if (enc->GetDistance() > -10.0) {
@@ -142,12 +149,16 @@ void Autonomous::baseGearLeft() {
 		} else {
 			robotDrive->StopMotor();
 			autoState = 4;
+			timer->Reset();
+			timer->Start();
 		}
 	} else if (autoState == 4) {
 		//Wait for ger to be removed
 		robotDrive->StopMotor();
-		if (limitSwitch->Get() == false) {
+		if (timer->Get() > 3.0) {
 			autoState = 4;
+			timer->Stop();
+			timer->Reset();
 		}
 	} else if (autoState == 5) {
 		if (enc->GetDistance() > -10.0) {

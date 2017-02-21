@@ -151,7 +151,7 @@ class Robot: public frc::IterativeRobot {
         debouncePower = true;
         lockRot = false;
         angleOffset = 0;
-        relative = true;
+        relative = false;
         shooterPower = 0.6;
 
         Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
@@ -187,6 +187,10 @@ class Robot: public frc::IterativeRobot {
 
     void AutonomousPeriodic() {
         visionControl->SetSetpoint(0.0);
+
+        winch->Set(0.0);
+        revolver->Set(0.0);
+        shooter->Set(0.0);
 
         float distance = ultrasonic->GetValue();
         if (distance < 214.0) {
@@ -336,7 +340,7 @@ class Robot: public frc::IterativeRobot {
 
         //spin revolver
         if (xboxjoystick->GetRawAxis(2) > 0.8) {
-            revolver->Set(0.5);
+            revolver->Set(-0.7);
         } else {
             revolver->Set(0.0);
         }
@@ -436,7 +440,7 @@ class Robot: public frc::IterativeRobot {
 
                 //find green
                 //cv::inRange(hsv, cv::Scalar(values[0],values[1],values[2]), cv::Scalar(values[3],values[4],values[5]), threshOutput);
-                cv::inRange(hsv, cv::Scalar(80,160,220), cv::Scalar(90,250,255), threshOutput);
+                cv::inRange(hsv, cv::Scalar(70,160,220), cv::Scalar(90,250,255), threshOutput);
                 //cv::inRange(hsv, cv::Scalar(160,130,140), cv::Scalar(179,160,255), out2);
                 //cv::addWeighted(out1, 1.0, out2, 1.0, 0.0, threshOutput);
 
