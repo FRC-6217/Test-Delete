@@ -30,6 +30,7 @@ void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::An
 }
 
 void Autonomous::baseGearRight() {
+	frc::SmartDashboard::PutNumber("Auto state", autoState);
 	if (autoState == 0) {
 		//Move forward until a distance is reached
 		if (enc->GetDistance() < 75.0) {
@@ -115,6 +116,7 @@ void Autonomous::forward(){
 }
 
 void Autonomous::baseGearLeft() {
+	frc::SmartDashboard::PutNumber("Auto state", autoState);
 	if (autoState == 0) {
 		//Move forward until a distance is reached
 		if (enc->GetDistance() < 79.0) {
@@ -153,7 +155,7 @@ void Autonomous::baseGearLeft() {
 			timer->Start();
 		}
 	} else if (autoState == 4) {
-		//Wait for ger to be removed
+		//Wait for gear to be removed
 		robotDrive->StopMotor();
 		if (timer->Get() > 3.0) {
 			autoState = 4;
@@ -191,6 +193,7 @@ void Autonomous::baseGearLeft() {
 	}
 }
 void Autonomous::baseGearCenter() {
+	frc::SmartDashboard::PutNumber("Auto state", autoState);
 	if (autoState == 0) {
 		//Move forward until a distance is reached, across line
 		if (enc->GetDistance() < 60.0) {

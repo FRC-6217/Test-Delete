@@ -229,7 +229,7 @@ class Robot: public frc::IterativeRobot {
         count = 0;
         enc->Reset();
         lockRot = false;
-        relative = false;
+        relative = true;
     }
 
     void TeleopPeriodic() {
@@ -324,7 +324,7 @@ class Robot: public frc::IterativeRobot {
             //move winch fast (A)
         } else if (xboxjoystick->GetRawButton(1)) {
             if (count < 40) {
-                winch->Set(0.70);
+                winch->Set(0.87);
             } else if (count < 40) {
                 winch->Set(0.0);
             } else {
