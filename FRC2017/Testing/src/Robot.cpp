@@ -58,7 +58,9 @@ class Robot: public frc::IterativeRobot {
     const int GEAR_LEFT = 1;
     const int GEAR_CENTER = 2;
     const int GEAR_RIGHT = 3;
-    const int BALLS = 4;
+    const int BALLS_RED = 4;
+    const int BALLS_BLUE = 5;
+    const int NOTHING = -1;
 
     float servoPos;
     int autoState;
@@ -70,6 +72,8 @@ class Robot: public frc::IterativeRobot {
     int count;
     bool relative;
     double shooterPower;
+
+    int ballNext;
 
     //These ones are static because the VisionThread is static.
     static bool actuate;
@@ -108,7 +112,9 @@ class Robot: public frc::IterativeRobot {
         autoChooser->AddObject("Left", &GEAR_LEFT);
         autoChooser->AddObject("Center", &GEAR_CENTER);
         autoChooser->AddObject("Right", &GEAR_RIGHT);
-        autoChooser->AddObject("Balls", &BALLS);
+        autoChooser->AddObject("Balls (Red)", &BALLS_RED);
+        autoChooser->AddObject("Balls (Blue)", &BALLS_BLUE);
+        autoChooser->AddObject("Do Nothing", &NOTHING);
         frc::SmartDashboard::PutData("Auto mode", autoChooser);
         frc::SmartDashboard::PutNumber("Shooter Power", 0.0);
         frc::SmartDashboard::PutString("Drive Mode", "Robot");
@@ -154,7 +160,9 @@ class Robot: public frc::IterativeRobot {
         relative = false;
         shooterPower = 0.6;
 
-        Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch);
+        ballNext = 0;
+
+        Autonomous::AutoInit(enc, robotDrive, gyro, limitSwitch, shooter, revolver);
 
         arduino[0]->Set(false);
         arduino[1]->Set(false);
@@ -189,8 +197,6 @@ class Robot: public frc::IterativeRobot {
         visionControl->SetSetpoint(0.0);
 
         winch->Set(0.0);
-        revolver->Set(0.0);
-        shooter->Set(0.0);
 
         float distance = ultrasonic->GetValue();
         if (distance < 214.0) {
@@ -213,14 +219,21 @@ class Robot: public frc::IterativeRobot {
         const int result = *autoChooser->GetSelected();
         if (result == CROSS) {
             Autonomous::forward();
-        } else if (result == GEAR_LEFT) {
+        } else if (result == GEAR_LEFT || *ballNext == 1) {
             Autonomous::baseGearLeft();
         } else if (result == GEAR_CENTER) {
             Autonomous::baseGearCenter();
-        } else if (result == GEAR_RIGHT) {
+        } else if (result == GEAR_RIGHT || *ballNext == 2) {
             Autonomous::baseGearRight();
-        } else if (result == BALLS) {
-            //todo
+        } else if (result == BALLS_RED) {
+            Autonomous::ballShooter(&ballNext, false);
+        } else if (result == BALLS_BLUE) {
+        	Autonomous::ballShooter(&ballNext, true);
+        } else {
+        	//do nothing.
+        	shooter->Set(0.0);
+        	revolver->Set(0.0);
+        	robotDrive->StopMotor();
         }
     }
 

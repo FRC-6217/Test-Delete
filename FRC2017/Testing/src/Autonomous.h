@@ -13,16 +13,19 @@ public:
 	static float distance;
 	static int autoState;
 
-	static void AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw);
+	static void AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw, frc::Spark* shoot, frc::Spark* revolve);
 	static void baseGearCenter();
 	static void forward();
 	static void baseGearRight();
 	static void baseGearLeft();
+	static void ballShooter(int* next, bool team);
 private:
 	static frc::Encoder* enc;
 	static frc::RobotDrive* robotDrive;
 	static frc::AnalogGyro* gyro;
 	static frc::DigitalInput* limitSwitch;
+	static frc::Spark* shooter;
+	static frc::Spark* revolver;
 
 	static frc::Timer* timer;
 };

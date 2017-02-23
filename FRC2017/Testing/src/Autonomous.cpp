@@ -18,18 +18,24 @@ frc::RobotDrive* Autonomous::robotDrive;
 frc::AnalogGyro* Autonomous::gyro;
 frc::DigitalInput* Autonomous::limitSwitch;
 frc::Timer* Autonomous::timer;
+frc::Spark* Autonomous::shooter;
+frc::Spark* Autonomous::revolver;
 
-void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw) {
+void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw, frc::Spark* shoot, frc::Spark* revolve) {
 	enc = encoder;
 	robotDrive = drive;
 	gyro = gyroscope;
 	limitSwitch = sw;
+	shooter = shoot;
+	revolver = revolve;
 
 	timer = new frc::Timer();
 
 }
 
 void Autonomous::baseGearRight() {
+    revolver->Set(0.0);
+    shooter->Set(0.0);
 	frc::SmartDashboard::PutNumber("Auto state", autoState);
 	if (autoState == 0) {
 		//Move forward until a distance is reached
@@ -108,6 +114,8 @@ void Autonomous::baseGearRight() {
 }
 
 void Autonomous::forward(){
+    revolver->Set(0.0);
+    shooter->Set(0.0);
 	if (enc->GetDistance() < 120.0) {
 		robotDrive->MecanumDrive_Cartesian(0.0, -0.4, KP_GYRO * gyro->GetAngle());
 	} else {
@@ -116,6 +124,8 @@ void Autonomous::forward(){
 }
 
 void Autonomous::baseGearLeft() {
+    revolver->Set(0.0);
+    shooter->Set(0.0);
 	frc::SmartDashboard::PutNumber("Auto state", autoState);
 	if (autoState == 0) {
 		//Move forward until a distance is reached
@@ -193,6 +203,8 @@ void Autonomous::baseGearLeft() {
 	}
 }
 void Autonomous::baseGearCenter() {
+    revolver->Set(0.0);
+    shooter->Set(0.0);
 	frc::SmartDashboard::PutNumber("Auto state", autoState);
 	if (autoState == 0) {
 		//Move forward until a distance is reached, across line
@@ -222,5 +234,69 @@ void Autonomous::baseGearCenter() {
 		}
 	} else {
 		robotDrive->StopMotor();
+	}
+}
+
+void Autonomous::ballShooter(int* next, bool team) {
+	if (autoState == 0) {
+		robotDrive->StopMotor();
+		revolver->Set(0.0);
+		shooter->Set(0.0);
+		timer->Stop();
+		timer->Reset();
+		autoState = 1;
+	} else if (autoState == 1) {
+		robotDrive->StopMotor();
+		if (timer->Get() < 1.0) {
+			revolver->Set(0.0);
+			shooter->Set(0.5);
+		} else {
+			revolver->Set(0.0);
+			shooter->Set(0.5);
+			autoState = 2;
+		}
+	} else if (autoState == 2) {
+		robotDrive->StopMotor();
+		if (timer->Get() < 5.0) {
+			revolver->Set(0.5);
+			shooter->Set(-0.7);
+		} else {
+			timer->Stop();
+			timer->Reset();
+			revolver->Set(0.0);
+			shooter->Set(0.0);
+			autoState = 3;
+		}
+	} else if (team && autoState == 3) {
+		revolver->Set(0.0);
+		shooter->Set(0.0);
+		if (enc->Get() < 8) {
+			robotDrive->MecanumDrive_Cartesian(0.0,-0.3,gyro->GetAngle() * KP_GYRO);
+		} else {
+			robotDrive->StopMotor();
+			enc->Reset();
+			autoState = 4;
+		}
+	} else if (autoState == 4 && team) {
+		revolver->Set(0.0);
+		shooter->Set(0.0);
+		if (gyro->GetAngle() < 180) {
+			robotDrive->MecanumDrive_Cartesian(0.0,0.0,0.4);
+		} else {
+			robotDrive->StopMotor();
+			gyro->Reset();
+			enc->Reset();
+			autoState = 5;
+		}
+	} else if (autoState == 5 || (autoState == 4 && !team)) {
+		revolver->Set(0.0);
+		shooter->Set(0.0);
+		robotDrive->StopMotor();
+		autoState = 0;
+		if (team) {
+			*next = 1;
+		} else {
+			*next = 2;
+		}
 	}
 }
