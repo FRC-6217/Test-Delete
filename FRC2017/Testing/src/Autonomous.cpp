@@ -1,3 +1,8 @@
+//!!! GARBAGE PROGAMMING ALERT !!!
+//EVAN DOES NOT TAKE ANY RESPONABILITY FOR ANY MENTAL DAMAGES THAT MAY OCCUR
+
+//Libraries.
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -8,8 +13,11 @@
 #include <SmartDashboard/SmartDashboard.h>
 #include <WPILib.h>
 
+//Include the definition
 #include <Autonomous.h>
 
+
+//Declare all of the variables of the class
 float Autonomous::distance = -1.0;
 float Autonomous::movement = 0.0;
 int Autonomous::autoState = 0;
@@ -21,6 +29,7 @@ frc::Timer* Autonomous::timer;
 frc::Spark* Autonomous::shooter;
 frc::Spark* Autonomous::revolver;
 
+//This function takes the motors and sensors, and allows Autonomous to reference them internally.
 void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::AnalogGyro* gyroscope, frc::DigitalInput* sw, frc::Spark* shoot, frc::Spark* revolve) {
 	enc = encoder;
 	robotDrive = drive;
@@ -33,6 +42,7 @@ void Autonomous::AutoInit(frc::Encoder* encoder, frc::RobotDrive* drive, frc::An
 
 }
 
+//Auto modes. All use autoState, which gets incremented as we go.  Each autoState increment represents a stage of the program.
 void Autonomous::baseGearRight() {
     revolver->Set(0.0);
     shooter->Set(0.0);
@@ -66,6 +76,7 @@ void Autonomous::baseGearRight() {
 			autoState = 3;
 		}
 	} else if (autoState == 3) {
+		//Move onto peg
 		if (distance > 15.5) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
@@ -83,6 +94,7 @@ void Autonomous::baseGearRight() {
 			timer->Reset();
 		}
 	} else if (autoState == 5) {
+		//back up
 		if (enc->GetDistance() > -10.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0,0.2, KP_GYRO * gyro->GetAngle());
 		} else {
@@ -101,6 +113,7 @@ void Autonomous::baseGearRight() {
 			enc->Reset();
 		}
 	} else if (autoState == 7) {
+		//Cross the line
 		if (enc->GetDistance() < 30.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0,-0.3, KP_GYRO * gyro->GetAngle());
 		} else {
@@ -113,6 +126,7 @@ void Autonomous::baseGearRight() {
 	}
 }
 
+//Just go forward.
 void Autonomous::forward(){
     revolver->Set(0.0);
     shooter->Set(0.0);
@@ -156,6 +170,7 @@ void Autonomous::baseGearLeft() {
 			autoState = 3;
 		}
 	} else if (autoState == 3) {
+		//Move onto peg
 		if (distance > 15.5) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
@@ -165,7 +180,7 @@ void Autonomous::baseGearLeft() {
 			timer->Start();
 		}
 	} else if (autoState == 4) {
-		//Wait for gear to be removed
+		//Wait for timer
 		robotDrive->StopMotor();
 		if (timer->Get() > 3.0) {
 			autoState = 4;
@@ -173,6 +188,7 @@ void Autonomous::baseGearLeft() {
 			timer->Reset();
 		}
 	} else if (autoState == 5) {
+		//back up
 		if (enc->GetDistance() > -10.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0,0.2, KP_GYRO * gyro->GetAngle());
 		} else {
@@ -191,6 +207,7 @@ void Autonomous::baseGearLeft() {
 			enc->Reset();
 		}
 	} else if (autoState == 7) {
+		//Cross line
 		if (enc->GetDistance() < 30.0) {
 			robotDrive->MecanumDrive_Cartesian(0.0,-0.3, KP_GYRO * gyro->GetAngle());
 		} else {
@@ -226,6 +243,7 @@ void Autonomous::baseGearCenter() {
 			autoState = 3;
 		}
 	} else if (autoState == 3) {
+		//Move onto peg
 		if (distance > 15.5) {
 			robotDrive->MecanumDrive_Cartesian(0.0, -0.2, KP_GYRO * gyro->GetAngle());
 		} else {
@@ -236,9 +254,10 @@ void Autonomous::baseGearCenter() {
 		robotDrive->StopMotor();
 	}
 }
-
+//Oh boy.
 void Autonomous::ballShooter(int* next, bool team) {
 	if (autoState == 0) {
+		//Stop and reset timer
 		robotDrive->StopMotor();
 		revolver->Set(0.0);
 		shooter->Set(0.0);
@@ -246,6 +265,7 @@ void Autonomous::ballShooter(int* next, bool team) {
 		timer->Reset();
 		autoState = 1;
 	} else if (autoState == 1) {
+		//Spin up the shooter
 		robotDrive->StopMotor();
 		if (timer->Get() < 1.0) {
 			revolver->Set(0.0);
@@ -256,10 +276,11 @@ void Autonomous::ballShooter(int* next, bool team) {
 			autoState = 2;
 		}
 	} else if (autoState == 2) {
+		//Start the revolver, and continue for a time period
 		robotDrive->StopMotor();
 		if (timer->Get() < 5.0) {
-			revolver->Set(0.5);
-			shooter->Set(-0.7);
+			revolver->Set(-0.5);
+			shooter->Set(0.5);
 		} else {
 			timer->Stop();
 			timer->Reset();
@@ -268,16 +289,18 @@ void Autonomous::ballShooter(int* next, bool team) {
 			autoState = 3;
 		}
 	} else if (team && autoState == 3) {
+		//if on the blue side, move away from the wall, as the robot is backwards.
 		revolver->Set(0.0);
 		shooter->Set(0.0);
 		if (enc->Get() < 8) {
-			robotDrive->MecanumDrive_Cartesian(0.0,-0.3,gyro->GetAngle() * KP_GYRO);
+			robotDrive->MecanumDrive_Cartesian(0.0,0.3,gyro->GetAngle() * KP_GYRO);
 		} else {
 			robotDrive->StopMotor();
 			enc->Reset();
 			autoState = 4;
 		}
-	} else if (autoState == 4 && team) {
+	} else if (team && autoState == 4) {
+		//also if blue, turn 180 degrees
 		revolver->Set(0.0);
 		shooter->Set(0.0);
 		if (gyro->GetAngle() < 180) {
@@ -288,7 +311,8 @@ void Autonomous::ballShooter(int* next, bool team) {
 			enc->Reset();
 			autoState = 5;
 		}
-	} else if (autoState == 5 || (autoState == 4 && !team)) {
+	} else if (autoState == 5 || (autoState == 3 && !team)) {
+		//After turning if necessary, reset everything, set autoState to 0, and tell the main class to call the correct gear method.
 		revolver->Set(0.0);
 		shooter->Set(0.0);
 		robotDrive->StopMotor();
