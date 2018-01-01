@@ -1,6 +1,6 @@
 //!!! GARBAGE PROGAMMING ALERT !!!
 //EVAN DOES NOT TAKE ANY RESPONABILITY FOR ANY MENTAL DAMAGES THAT MAY OCCUR
-
+#define _GLIBCXX_USE_CXX11_ABI 0
 //Include needed libraries
 #include <iostream>
 #include <memory>
@@ -260,11 +260,11 @@ class Robot: public frc::IterativeRobot {
         //And run the right auto function based on that. (Remember that this is called repeatedly)
         if (result == CROSS) {
             Autonomous::forward();
-        } else if (result == GEAR_LEFT || *ballNext == 1) {
+        //} else if (result == GEAR_LEFT || *ballNext == 1) {
             Autonomous::baseGearLeft();
         } else if (result == GEAR_CENTER) {
             Autonomous::baseGearCenter();
-        } else if (result == GEAR_RIGHT || *ballNext == 2) {
+        //} else if (result == GEAR_RIGHT || *ballNext == 2) {
             Autonomous::baseGearRight();
         } else if (result == BALLS_RED) {
             Autonomous::ballShooter(&ballNext, false);
